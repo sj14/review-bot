@@ -4,12 +4,60 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"text/template"
 
 	"github.com/xanzy/go-gitlab"
 )
 
-// NewClient returns a new gitlab client.
-func NewClient(host, token string) *gitlab.Client {
+func AggregateReminder(host, token string, projectID int, reviewers map[int]string, template *template.Template) string {
+	// setup gitlab client
+	git := newClient(host, token)
+
+	// get open merge requests
+	mergeRequests := openMergeRequests(git, projectID)
+
+	// TODO: add option
+	// only return merge requests which have no open discussions
+	// mergeRequests = filterOpenDiscussions(git, mergeRequests)
+
+	// will contain the reminders of all merge requests
+	var reminderText string
+
+	for _, mr := range mergeRequests {
+		// dont' check WIP MRs
+		if mr.WorkInProgress {
+			continue
+		}
+
+		// load all emojis awarded to the mr
+		emojis := loadEmojis(git, projectID, mr)
+
+		// check who gave thumbs up/down (or "sleeping")
+		reviewedBy := getReviewed(mr, emojis)
+
+		// who is missing thumbs up/down
+		missing := missingReviewers(reviewedBy, reviewers)
+
+		// load all discussions of the mr
+		discussions := loadDiscussions(git, projectID, mr)
+
+		// get the number of open discussions
+		discussionsCount := openDiscussionsCount(discussions)
+
+		// get the responsible person of the mr
+		owner := responsiblePerson(mr, reviewers)
+
+		// list each emoji with the usage count
+		emojisAggr := aggregateEmojis(emojis)
+
+		// generate the reminder text for the current mr
+		reminderText += execTemplate(template, mr, owner, missing, discussionsCount, emojisAggr)
+	}
+	return reminderText
+}
+
+// newClient returns a new gitlab client.
+func newClient(host, token string) *gitlab.Client {
 	client := gitlab.NewClient(nil, token)
 	if err := client.SetBaseURL(fmt.Sprintf("https://%s/api/v4", host)); err != nil {
 		log.Fatalf("failed to set gitlab host: %v", err)
@@ -17,9 +65,9 @@ func NewClient(host, token string) *gitlab.Client {
 	return client
 }
 
-// ResponsiblePerson returns the mattermost name of the assignee or author of the MR
+// responsiblePerson returns the mattermost name of the assignee or author of the MR
 // (fallback: gitlab author name)
-func ResponsiblePerson(mr *gitlab.MergeRequest, reviewers map[int]string) string {
+func responsiblePerson(mr *gitlab.MergeRequest, reviewers map[int]string) string {
 	if mr.Assignee.ID != 0 {
 		assignee, ok := reviewers[mr.Assignee.ID]
 		if ok {
@@ -35,8 +83,8 @@ func ResponsiblePerson(mr *gitlab.MergeRequest, reviewers map[int]string) string
 	return mr.Author.Name
 }
 
-// OpenMergeRequests returns all open merge requests of the given project.
-func OpenMergeRequests(git *gitlab.Client, projectID int) []*gitlab.MergeRequest {
+// openMergeRequests returns all open merge requests of the given project.
+func openMergeRequests(git *gitlab.Client, projectID int) []*gitlab.MergeRequest {
 	// options
 	state := "opened"
 	opts := &gitlab.ListProjectMergeRequestsOptions{State: &state, ListOptions: gitlab.ListOptions{PerPage: 100}}
@@ -67,8 +115,8 @@ func OpenMergeRequests(git *gitlab.Client, projectID int) []*gitlab.MergeRequest
 	return mergeRequests
 }
 
-// LoadDiscussions of the given MR.
-func LoadDiscussions(git *gitlab.Client, projectID int, mr *gitlab.MergeRequest) []*gitlab.Discussion {
+// loadDiscussions of the given MR.
+func loadDiscussions(git *gitlab.Client, projectID int, mr *gitlab.MergeRequest) []*gitlab.Discussion {
 	opts := &gitlab.ListMergeRequestDiscussionsOptions{PerPage: 100}
 
 	// first page
@@ -97,8 +145,8 @@ func LoadDiscussions(git *gitlab.Client, projectID int, mr *gitlab.MergeRequest)
 	return discussions
 }
 
-// OpenDiscussionsCount returns the number of open discussions.
-func OpenDiscussionsCount(discussions []*gitlab.Discussion) int {
+// openDiscussionsCount returns the number of open discussions.
+func openDiscussionsCount(discussions []*gitlab.Discussion) int {
 	// check if any of the discussions are unresolved
 	count := 0
 	for _, d := range discussions {
@@ -111,8 +159,8 @@ func OpenDiscussionsCount(discussions []*gitlab.Discussion) int {
 	return count
 }
 
-// FilterOpenDiscussions returns only merge requests which have no open discussions.
-func FilterOpenDiscussions(mergeRequests []*gitlab.MergeRequest, discussions []*gitlab.Discussion) []*gitlab.MergeRequest {
+// filterOpenDiscussions returns only merge requests which have no open discussions.
+func filterOpenDiscussions(mergeRequests []*gitlab.MergeRequest, discussions []*gitlab.Discussion) []*gitlab.MergeRequest {
 	result := []*gitlab.MergeRequest{}
 
 	for _, mr := range mergeRequests {
@@ -136,8 +184,8 @@ func FilterOpenDiscussions(mergeRequests []*gitlab.MergeRequest, discussions []*
 	return result
 }
 
-// LoadEmojis returns all emoji reactions of the particular MR.
-func LoadEmojis(git *gitlab.Client, projectID int, mr *gitlab.MergeRequest) []*gitlab.AwardEmoji {
+// loadEmojis returns all emoji reactions of the particular MR.
+func loadEmojis(git *gitlab.Client, projectID int, mr *gitlab.MergeRequest) []*gitlab.AwardEmoji {
 	opts := &gitlab.ListAwardEmojiOptions{PerPage: 100}
 
 	// first page
@@ -163,10 +211,10 @@ func LoadEmojis(git *gitlab.Client, projectID int, mr *gitlab.MergeRequest) []*g
 	return emojis
 }
 
-// GetReviewed returns the gitlab user id of the people who have already reviewed the MR.
+// getReviewed returns the gitlab user id of the people who have already reviewed the MR.
 // The emojis "thumbsup" 👍 and "thumbsdown" 👎 signal the user reviewed the merge request and won't receive a reminder.
 // The emoji "sleeping" 😴 means the user won't review the code and/or doesn't want to be reminded.
-func GetReviewed(mr *gitlab.MergeRequest, emojis []*gitlab.AwardEmoji) []int {
+func getReviewed(mr *gitlab.MergeRequest, emojis []*gitlab.AwardEmoji) []int {
 	var reviewedBy []int
 	reviewedBy = append(reviewedBy, mr.Author.ID)
 	for _, emoji := range emojis {
@@ -178,8 +226,8 @@ func GetReviewed(mr *gitlab.MergeRequest, emojis []*gitlab.AwardEmoji) []int {
 	return reviewedBy
 }
 
-// AggregateEmojis lists all emojis with their usage count.
-func AggregateEmojis(emojis []*gitlab.AwardEmoji) map[string]int {
+// aggregateEmojis lists all emojis with their usage count.
+func aggregateEmojis(emojis []*gitlab.AwardEmoji) map[string]int {
 	var aggregate map[string]int
 	aggregate = make(map[string]int)
 
@@ -192,8 +240,8 @@ func AggregateEmojis(emojis []*gitlab.AwardEmoji) map[string]int {
 	return aggregate
 }
 
-// MissingReviewers returns all reviewers which have not reacted with 👍, 👎 or 😴.
-func MissingReviewers(reviewedBy []int, approvers map[int]string) []string {
+// missingReviewers returns all reviewers which have not reacted with 👍, 👎 or 😴.
+func missingReviewers(reviewedBy []int, approvers map[int]string) []string {
 	var result []string
 	for userID, userName := range approvers {
 		approved := false

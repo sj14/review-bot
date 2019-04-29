@@ -9,7 +9,6 @@ import (
 
 	"github.com/sj14/review-reminder/gitlab"
 	"github.com/sj14/review-reminder/mattermost"
-	"github.com/sj14/review-reminder/templates"
 )
 
 func main() {
@@ -23,64 +22,20 @@ func main() {
 	)
 	flag.Parse()
 
-	// setup gitlab client
-	git := gitlab.NewClient(*host, *glToken)
-
-	// load reviewers from given json file
+	// setup
 	reviewers := loadReviewers(*reviewersPath)
 
-	// get open merge requests
-	mergeRequests := gitlab.OpenMergeRequests(git, *projectID)
-
-	// only return merge requests which have no open discussions
-	// mergeRequests = filterOpenDiscussions(git, mergeRequests)
-
-	// parse the reminder text template
-	template := templates.Get()
-
-	// will contain the reminders of all merge requests
-	var reminderText string
-
-	for _, mr := range mergeRequests {
-		// dont' check WIP MRs
-		if mr.WorkInProgress {
-			continue
-		}
-
-		// load all emojis awarded to the mr
-		emojis := gitlab.LoadEmojis(git, *projectID, mr)
-
-		// check who gave thumbs up/down (or "sleeping")
-		reviewedBy := gitlab.GetReviewed(mr, emojis)
-
-		// who is missing thumbs up/down
-		missing := gitlab.MissingReviewers(reviewedBy, reviewers)
-
-		// load all discussions of the mr
-		discussions := gitlab.LoadDiscussions(git, *projectID, mr)
-
-		// get the number of open discussions
-		discussionsCount := gitlab.OpenDiscussionsCount(discussions)
-
-		// get the responsible person of the mr
-		owner := gitlab.ResponsiblePerson(mr, reviewers)
-
-		// list each emoji with the usage count
-		emojisAggr := gitlab.AggregateEmojis(emojis)
-
-		// generate the reminder text for the current mr
-		reminderText += templates.Exec(template, mr, owner, missing, discussionsCount, emojisAggr)
-	}
-
-	if reminderText == "" {
+	// aggregate
+	reminder := gitlab.AggregateReminder(*host, *glToken, *projectID, reviewers, gitlab.DefaultTemplate())
+	if reminder == "" {
 		return
 	}
 
-	// print text of all aggregated reminders
-	fmt.Println(reminderText)
+	// output
+	fmt.Println(reminder)
 
 	if *channel != "" {
-		mattermost.Send(*channel, reminderText, *webhook)
+		mattermost.Send(*channel, reminder, *webhook)
 	}
 }
 
@@ -97,7 +52,7 @@ func loadReviewers(reviewersPath string) map[int]string {
 	reviewers := map[int]string{}
 
 	if err := json.Unmarshal(b, &reviewers); err != nil {
-		log.Fatalf("failed to umarshal reviewers: %v", err)
+		log.Fatalf("failed to unmarshal reviewers: %v", err)
 	}
 
 	return reviewers

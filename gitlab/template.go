@@ -1,17 +1,16 @@
-package templates
+package gitlab
 
 import (
 	"bytes"
 	"log"
 	"text/template"
 
-	gitlablib "github.com/xanzy/go-gitlab"
+	"github.com/xanzy/go-gitlab"
 )
 
 // Get the template for the reminder message.
-func Get() *template.Template {
+func DefaultTemplate() *template.Template {
 	// TODO: allow to load any template from a file
-
 	const defaultTemplate = `
 **[{{.MR.Title}}]({{.MR.WebURL}})**
 {{if .Discussions}} {{.Discussions}} 💬 {{end}} {{range $key, $value := .Emojis}} {{$value}} :{{$key}}: {{end}} {{range .Missing}}{{.}} {{else}}You got all reviews, {{.Owner}}.{{end}}
@@ -20,9 +19,9 @@ func Get() *template.Template {
 }
 
 // Exec the reminder message for the given merge request.
-func Exec(template *template.Template, mr *gitlablib.MergeRequest, owner string, contacts []string, discussions int, emojis map[string]int) string {
+func execTemplate(template *template.Template, mr *gitlab.MergeRequest, owner string, contacts []string, discussions int, emojis map[string]int) string {
 	data := struct {
-		MR          *gitlablib.MergeRequest
+		MR          *gitlab.MergeRequest
 		Missing     []string
 		Discussions int
 		Owner       string
