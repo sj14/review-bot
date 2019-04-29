@@ -72,6 +72,10 @@ func main() {
 		reminderText += templates.Exec(template, mr, owner, missing, discussionsCount, emojisAggr)
 	}
 
+	if reminderText == "" {
+		return
+	}
+
 	// print text of all aggregated reminders
 	fmt.Println(reminderText)
 
