@@ -24,7 +24,7 @@ func AggregateReminder(host, token string, projectID int, reviewers map[int]stri
 	var reminderText string
 
 	for _, mr := range mergeRequests {
-		// dont' check WIP MRs
+		// don't check WIP MRs
 		if mr.WorkInProgress {
 			continue
 		}
