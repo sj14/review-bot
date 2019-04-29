@@ -69,14 +69,12 @@ func newClient(host, token string) *gitlab.Client {
 // (fallback: gitlab author name)
 func responsiblePerson(mr *gitlab.MergeRequest, reviewers map[int]string) string {
 	if mr.Assignee.ID != 0 {
-		assignee, ok := reviewers[mr.Assignee.ID]
-		if ok {
+		if assignee, ok := reviewers[mr.Assignee.ID]; ok {
 			return assignee
 		}
 	}
 
-	author, ok := reviewers[mr.Author.ID]
-	if ok {
+	if author, ok := reviewers[mr.Author.ID]; ok {
 		return author
 	}
 
