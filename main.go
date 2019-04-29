@@ -14,7 +14,7 @@ import (
 func main() {
 	var (
 		host          = flag.String("host", "gitlab.com", "GitLab host address")
-		glToken       = flag.String("token", "", "GitLab API token")
+		token         = flag.String("token", "", "GitLab API token")
 		projectID     = flag.Int("project", 1, "GitLab project id")
 		reviewersPath = flag.String("reviewers", "reviewers.json", "file path to the reviewers config file")
 		webhook       = flag.String("webhook", "", "Mattermost webhook URL")
@@ -26,7 +26,7 @@ func main() {
 	reviewers := loadReviewers(*reviewersPath)
 
 	// aggregate
-	reminder := gitlab.AggregateReminder(*host, *glToken, *projectID, reviewers, gitlab.DefaultTemplate())
+	reminder := gitlab.AggregateReminder(*host, *token, *projectID, reviewers, gitlab.DefaultTemplate())
 	if reminder == "" {
 		return
 	}
