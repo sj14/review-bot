@@ -7,8 +7,8 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/sj14/review-reminder/gitlab"
-	"github.com/sj14/review-reminder/mattermost"
+	"github.com/sj14/review-bot/gitlab"
+	"github.com/sj14/review-bot/mattermost"
 )
 
 func main() {
