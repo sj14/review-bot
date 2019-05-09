@@ -9,9 +9,19 @@ import (
 	"github.com/xanzy/go-gitlab"
 )
 
+type reminder struct {
+	MR          *gitlab.MergeRequest
+	Missing     []string
+	Discussions int
+	Owner       string
+	Emojis      map[string]int
+}
+
 func AggregateReminder(host, token string, projectID int, reviewers map[int]string, template *template.Template) string {
 	// setup gitlab client
 	git := newClient(host, token)
+
+	project := projectInfo(git, projectID)
 
 	// get open merge requests
 	mergeRequests := openMergeRequests(git, projectID)
@@ -21,7 +31,7 @@ func AggregateReminder(host, token string, projectID int, reviewers map[int]stri
 	// mergeRequests = filterOpenDiscussions(git, mergeRequests)
 
 	// will contain the reminders of all merge requests
-	var reminderText string
+	var reminders []reminder
 
 	for _, mr := range mergeRequests {
 		// don't check WIP MRs
@@ -50,10 +60,11 @@ func AggregateReminder(host, token string, projectID int, reviewers map[int]stri
 		// list each emoji with the usage count
 		emojisAggr := aggregateEmojis(emojis)
 
-		// generate the reminder text for the current mr
-		reminderText += execTemplate(template, mr, owner, missing, discussionsCount, emojisAggr)
+		reminders = append(reminders, reminder{mr, missing, discussionsCount, owner, emojisAggr})
 	}
-	return reminderText
+
+	// generate the reminder text
+	return execTemplate(template, project, reminders)
 }
 
 // newClient returns a new gitlab client.
@@ -63,6 +74,18 @@ func newClient(host, token string) *gitlab.Client {
 		log.Fatalf("failed to set gitlab host: %v", err)
 	}
 	return client
+}
+
+func projectInfo(git *gitlab.Client, id int) gitlab.Project {
+	p, resp, err := git.Projects.GetProject(id)
+	if err != nil {
+		log.Fatalf("failed to get project: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		log.Fatalf("failed to get project, status code: %v", resp.StatusCode)
+	}
+
+	return *p
 }
 
 // responsiblePerson returns the mattermost name of the assignee or author of the MR
