@@ -8,7 +8,7 @@ import (
 )
 
 func TestAggregateReminder(t *testing.T) {
-	mockedClient := &ClientMock{
+	mockedClient := &clientMock{
 		projectInfoFunc: func(id int) gitlab.Project {
 			return gitlab.Project{Name: "mocked project"}
 		},

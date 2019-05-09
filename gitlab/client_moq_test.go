@@ -9,22 +9,22 @@ import (
 )
 
 var (
-	lockClientMockloadDiscussions   sync.RWMutex
-	lockClientMockloadEmojis        sync.RWMutex
-	lockClientMockopenMergeRequests sync.RWMutex
-	lockClientMockprojectInfo       sync.RWMutex
+	lockclientMockloadDiscussions   sync.RWMutex
+	lockclientMockloadEmojis        sync.RWMutex
+	lockclientMockopenMergeRequests sync.RWMutex
+	lockclientMockprojectInfo       sync.RWMutex
 )
 
-// Ensure, that ClientMock does implement Client.
+// Ensure, that clientMock does implement client.
 // If this is not the case, regenerate this file with moq.
-var _ Client = &ClientMock{}
+var _ client = &clientMock{}
 
-// ClientMock is a mock implementation of Client.
+// clientMock is a mock implementation of client.
 //
-//     func TestSomethingThatUsesClient(t *testing.T) {
+//     func TestSomethingThatUsesclient(t *testing.T) {
 //
-//         // make and configure a mocked Client
-//         mockedClient := &ClientMock{
+//         // make and configure a mocked client
+//         mockedclient := &clientMock{
 //             loadDiscussionsFunc: func(projectID int, mr *gitlab.MergeRequest) []*gitlab.Discussion {
 // 	               panic("mock out the loadDiscussions method")
 //             },
@@ -39,11 +39,11 @@ var _ Client = &ClientMock{}
 //             },
 //         }
 //
-//         // use mockedClient in code that requires Client
+//         // use mockedclient in code that requires client
 //         // and then make assertions.
 //
 //     }
-type ClientMock struct {
+type clientMock struct {
 	// loadDiscussionsFunc mocks the loadDiscussions method.
 	loadDiscussionsFunc func(projectID int, mr *gitlab.MergeRequest) []*gitlab.Discussion
 
@@ -86,9 +86,9 @@ type ClientMock struct {
 }
 
 // loadDiscussions calls loadDiscussionsFunc.
-func (mock *ClientMock) loadDiscussions(projectID int, mr *gitlab.MergeRequest) []*gitlab.Discussion {
+func (mock *clientMock) loadDiscussions(projectID int, mr *gitlab.MergeRequest) []*gitlab.Discussion {
 	if mock.loadDiscussionsFunc == nil {
-		panic("ClientMock.loadDiscussionsFunc: method is nil but Client.loadDiscussions was just called")
+		panic("clientMock.loadDiscussionsFunc: method is nil but client.loadDiscussions was just called")
 	}
 	callInfo := struct {
 		ProjectID int
@@ -97,16 +97,16 @@ func (mock *ClientMock) loadDiscussions(projectID int, mr *gitlab.MergeRequest) 
 		ProjectID: projectID,
 		Mr:        mr,
 	}
-	lockClientMockloadDiscussions.Lock()
+	lockclientMockloadDiscussions.Lock()
 	mock.calls.loadDiscussions = append(mock.calls.loadDiscussions, callInfo)
-	lockClientMockloadDiscussions.Unlock()
+	lockclientMockloadDiscussions.Unlock()
 	return mock.loadDiscussionsFunc(projectID, mr)
 }
 
 // loadDiscussionsCalls gets all the calls that were made to loadDiscussions.
 // Check the length with:
-//     len(mockedClient.loadDiscussionsCalls())
-func (mock *ClientMock) loadDiscussionsCalls() []struct {
+//     len(mockedclient.loadDiscussionsCalls())
+func (mock *clientMock) loadDiscussionsCalls() []struct {
 	ProjectID int
 	Mr        *gitlab.MergeRequest
 } {
@@ -114,16 +114,16 @@ func (mock *ClientMock) loadDiscussionsCalls() []struct {
 		ProjectID int
 		Mr        *gitlab.MergeRequest
 	}
-	lockClientMockloadDiscussions.RLock()
+	lockclientMockloadDiscussions.RLock()
 	calls = mock.calls.loadDiscussions
-	lockClientMockloadDiscussions.RUnlock()
+	lockclientMockloadDiscussions.RUnlock()
 	return calls
 }
 
 // loadEmojis calls loadEmojisFunc.
-func (mock *ClientMock) loadEmojis(projectID int, mr *gitlab.MergeRequest) []*gitlab.AwardEmoji {
+func (mock *clientMock) loadEmojis(projectID int, mr *gitlab.MergeRequest) []*gitlab.AwardEmoji {
 	if mock.loadEmojisFunc == nil {
-		panic("ClientMock.loadEmojisFunc: method is nil but Client.loadEmojis was just called")
+		panic("clientMock.loadEmojisFunc: method is nil but client.loadEmojis was just called")
 	}
 	callInfo := struct {
 		ProjectID int
@@ -132,16 +132,16 @@ func (mock *ClientMock) loadEmojis(projectID int, mr *gitlab.MergeRequest) []*gi
 		ProjectID: projectID,
 		Mr:        mr,
 	}
-	lockClientMockloadEmojis.Lock()
+	lockclientMockloadEmojis.Lock()
 	mock.calls.loadEmojis = append(mock.calls.loadEmojis, callInfo)
-	lockClientMockloadEmojis.Unlock()
+	lockclientMockloadEmojis.Unlock()
 	return mock.loadEmojisFunc(projectID, mr)
 }
 
 // loadEmojisCalls gets all the calls that were made to loadEmojis.
 // Check the length with:
-//     len(mockedClient.loadEmojisCalls())
-func (mock *ClientMock) loadEmojisCalls() []struct {
+//     len(mockedclient.loadEmojisCalls())
+func (mock *clientMock) loadEmojisCalls() []struct {
 	ProjectID int
 	Mr        *gitlab.MergeRequest
 } {
@@ -149,70 +149,70 @@ func (mock *ClientMock) loadEmojisCalls() []struct {
 		ProjectID int
 		Mr        *gitlab.MergeRequest
 	}
-	lockClientMockloadEmojis.RLock()
+	lockclientMockloadEmojis.RLock()
 	calls = mock.calls.loadEmojis
-	lockClientMockloadEmojis.RUnlock()
+	lockclientMockloadEmojis.RUnlock()
 	return calls
 }
 
 // openMergeRequests calls openMergeRequestsFunc.
-func (mock *ClientMock) openMergeRequests(projectID int) []*gitlab.MergeRequest {
+func (mock *clientMock) openMergeRequests(projectID int) []*gitlab.MergeRequest {
 	if mock.openMergeRequestsFunc == nil {
-		panic("ClientMock.openMergeRequestsFunc: method is nil but Client.openMergeRequests was just called")
+		panic("clientMock.openMergeRequestsFunc: method is nil but client.openMergeRequests was just called")
 	}
 	callInfo := struct {
 		ProjectID int
 	}{
 		ProjectID: projectID,
 	}
-	lockClientMockopenMergeRequests.Lock()
+	lockclientMockopenMergeRequests.Lock()
 	mock.calls.openMergeRequests = append(mock.calls.openMergeRequests, callInfo)
-	lockClientMockopenMergeRequests.Unlock()
+	lockclientMockopenMergeRequests.Unlock()
 	return mock.openMergeRequestsFunc(projectID)
 }
 
 // openMergeRequestsCalls gets all the calls that were made to openMergeRequests.
 // Check the length with:
-//     len(mockedClient.openMergeRequestsCalls())
-func (mock *ClientMock) openMergeRequestsCalls() []struct {
+//     len(mockedclient.openMergeRequestsCalls())
+func (mock *clientMock) openMergeRequestsCalls() []struct {
 	ProjectID int
 } {
 	var calls []struct {
 		ProjectID int
 	}
-	lockClientMockopenMergeRequests.RLock()
+	lockclientMockopenMergeRequests.RLock()
 	calls = mock.calls.openMergeRequests
-	lockClientMockopenMergeRequests.RUnlock()
+	lockclientMockopenMergeRequests.RUnlock()
 	return calls
 }
 
 // projectInfo calls projectInfoFunc.
-func (mock *ClientMock) projectInfo(id int) gitlab.Project {
+func (mock *clientMock) projectInfo(id int) gitlab.Project {
 	if mock.projectInfoFunc == nil {
-		panic("ClientMock.projectInfoFunc: method is nil but Client.projectInfo was just called")
+		panic("clientMock.projectInfoFunc: method is nil but client.projectInfo was just called")
 	}
 	callInfo := struct {
 		ID int
 	}{
 		ID: id,
 	}
-	lockClientMockprojectInfo.Lock()
+	lockclientMockprojectInfo.Lock()
 	mock.calls.projectInfo = append(mock.calls.projectInfo, callInfo)
-	lockClientMockprojectInfo.Unlock()
+	lockclientMockprojectInfo.Unlock()
 	return mock.projectInfoFunc(id)
 }
 
 // projectInfoCalls gets all the calls that were made to projectInfo.
 // Check the length with:
-//     len(mockedClient.projectInfoCalls())
-func (mock *ClientMock) projectInfoCalls() []struct {
+//     len(mockedclient.projectInfoCalls())
+func (mock *clientMock) projectInfoCalls() []struct {
 	ID int
 } {
 	var calls []struct {
 		ID int
 	}
-	lockClientMockprojectInfo.RLock()
+	lockclientMockprojectInfo.RLock()
 	calls = mock.calls.projectInfo
-	lockClientMockprojectInfo.RUnlock()
+	lockclientMockprojectInfo.RUnlock()
 	return calls
 }

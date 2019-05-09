@@ -32,7 +32,7 @@ func AggregateReminder(host, token string, projectID int, reviewers map[int]stri
 }
 
 // helper functions for easier testability (mocked gitlab client)
-func aggregate(git Client, projectID int, reviewers map[int]string) (gitlab.Project, []reminder) {
+func aggregate(git client, projectID int, reviewers map[int]string) (gitlab.Project, []reminder) {
 	project := git.projectInfo(projectID)
 
 	// get open merge requests
@@ -79,8 +79,8 @@ func aggregate(git Client, projectID int, reviewers map[int]string) (gitlab.Proj
 	return project, reminders
 }
 
-//go:generate moq -out client_moq_test.go . Client
-type Client interface {
+//go:generate moq -out client_moq_test.go . client
+type client interface {
 	projectInfo(id int) gitlab.Project
 	openMergeRequests(projectID int) []*gitlab.MergeRequest
 	loadEmojis(projectID int, mr *gitlab.MergeRequest) []*gitlab.AwardEmoji
