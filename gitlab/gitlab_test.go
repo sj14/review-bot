@@ -2,6 +2,7 @@ package gitlab
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/xanzy/go-gitlab"
@@ -41,4 +42,60 @@ func TestAggregateReminder(t *testing.T) {
 
 	require.Equal(t, expP, gotP)
 	require.Equal(t, expR, gotR)
+}
+
+func TestResponsiblePerson(t *testing.T) {
+	t.Run("author", func(t *testing.T) {
+		mr := &gitlab.MergeRequest{
+			Author: struct {
+				ID        int        `json:"id"`
+				Username  string     `json:"username"`
+				Name      string     `json:"name"`
+				State     string     `json:"state"`
+				CreatedAt *time.Time `json:"created_at"`
+			}{
+				Name: "name-of-author",
+			},
+		}
+
+		reviewers := map[int]string{}
+		got := responsiblePerson(mr, reviewers)
+		require.Equal(t, "name-of-author", got)
+	})
+
+	t.Run("@author", func(t *testing.T) {
+		mr := &gitlab.MergeRequest{
+			Author: struct {
+				ID        int        `json:"id"`
+				Username  string     `json:"username"`
+				Name      string     `json:"name"`
+				State     string     `json:"state"`
+				CreatedAt *time.Time `json:"created_at"`
+			}{
+				ID: 5,
+			},
+		}
+
+		reviewers := map[int]string{5: "@author-of-mr"}
+		got := responsiblePerson(mr, reviewers)
+		require.Equal(t, "@author-of-mr", got)
+	})
+
+	t.Run("assignee", func(t *testing.T) {
+		mr := &gitlab.MergeRequest{
+			Assignee: struct {
+				ID        int        `json:"id"`
+				Username  string     `json:"username"`
+				Name      string     `json:"name"`
+				State     string     `json:"state"`
+				CreatedAt *time.Time `json:"created_at"`
+			}{
+				ID: 5,
+			},
+		}
+
+		reviewers := map[int]string{5: "assignee-of-mr"}
+		got := responsiblePerson(mr, reviewers)
+		require.Equal(t, "assignee-of-mr", got)
+	})
 }
