@@ -63,6 +63,11 @@ func AggregateReminder(host, token string, projectID int, reviewers map[int]stri
 		reminders = append(reminders, reminder{mr, missing, discussionsCount, owner, emojisAggr})
 	}
 
+	// prevent from sending the header only
+	if len(reminders) == 0 {
+		return ""
+	}
+
 	// generate the reminder text
 	return execTemplate(template, project, reminders)
 }
