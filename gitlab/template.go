@@ -14,7 +14,7 @@ func DefaultTemplate() *template.Template {
 	const defaultTemplate = `
 # [{{.Project.Name}}]({{.Project.WebURL}})
 
-**How-To**: *Got reminded? Just normally review the given merge request with 👍/👎 or use 😴 if you don't want to receive a reminder on this merge request.*
+**How-To**: *Got reminded? Just normally review the given merge request with 👍/👎 or use 😴 if you don't want to receive a reminder about this merge request.*
 
 ---
 
