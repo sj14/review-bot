@@ -10,7 +10,6 @@ import (
 
 // DefaultTemplate contains a project header and reminder messages.
 func DefaultTemplate() *template.Template {
-	// TODO: allow to load any template from a file
 	const defaultTemplate = `
 # ![]({{.Project.AvatarURL}} =40x) [{{.Project.Name}}]({{.Project.WebURL}})
 
