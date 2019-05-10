@@ -8,7 +8,7 @@ import (
 	"github.com/xanzy/go-gitlab"
 )
 
-// Get the template for the reminder message.
+// DefaultTemplate contains a project header and reminder messages.
 func DefaultTemplate() *template.Template {
 	// TODO: allow to load any template from a file
 	const defaultTemplate = `

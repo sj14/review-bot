@@ -17,6 +17,7 @@ type reminder struct {
 	Emojis      map[string]int
 }
 
+// AggregateReminder will generate the reminder message.
 func AggregateReminder(host, token string, projectID int, reviewers map[int]string, template *template.Template) string {
 	// setup gitlab client
 	git := newClient(host, token)
