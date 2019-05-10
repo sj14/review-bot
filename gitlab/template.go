@@ -12,7 +12,7 @@ import (
 func DefaultTemplate() *template.Template {
 	// TODO: allow to load any template from a file
 	const defaultTemplate = `
-# [{{.Project.Name}}]({{.Project.WebURL}})
+# ![]({{.Project.AvatarURL}} =40x) [{{.Project.Name}}]({{.Project.WebURL}})
 
 **How-To**: *Got reminded? Just normally review the given merge request with 👍/👎 or use 😴 if you don't want to receive a reminder about this merge request.*
 
