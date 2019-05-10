@@ -132,22 +132,16 @@ func responsiblePerson(mr *gitlab.MergeRequest, reviewers map[int]string) string
 // openMergeRequests returns all open merge requests of the given project.
 func (cw *clientWrapper) openMergeRequests(projectID int) []*gitlab.MergeRequest {
 	// options
-	state := "opened"
-	opts := &gitlab.ListProjectMergeRequestsOptions{State: &state, ListOptions: gitlab.ListOptions{PerPage: 100}}
+	var (
+		mergeRequests []*gitlab.MergeRequest
+		state         = "opened"
+		opts          = &gitlab.ListProjectMergeRequestsOptions{
+			State:       &state,
+			ListOptions: gitlab.ListOptions{PerPage: 100},
+		}
+	)
 
-	// first page
-	mergeRequests, resp, err := cw.original.MergeRequests.ListProjectMergeRequests(projectID, opts)
-	if err != nil {
-		log.Fatalf("failed to list project merge requests: %v", err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		log.Fatalf("failed to list project merge requests, status code: %v", resp.StatusCode)
-	}
-
-	// following pages
-	for page := 2; page <= resp.TotalPages; page++ {
-		opts.Page = page
-
+	for {
 		pageMRs, resp, err := cw.original.MergeRequests.ListProjectMergeRequests(projectID, opts)
 		if err != nil {
 			log.Fatalf("failed to list project merge requests: %v", err)
@@ -156,6 +150,10 @@ func (cw *clientWrapper) openMergeRequests(projectID int) []*gitlab.MergeRequest
 			log.Fatalf("failed to list project merge requests, status code: %v", resp.StatusCode)
 		}
 		mergeRequests = append(mergeRequests, pageMRs...)
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
 	}
 
 	return mergeRequests
@@ -163,21 +161,13 @@ func (cw *clientWrapper) openMergeRequests(projectID int) []*gitlab.MergeRequest
 
 // loadDiscussions of the given MR.
 func (cw *clientWrapper) loadDiscussions(projectID int, mr *gitlab.MergeRequest) []*gitlab.Discussion {
-	opts := &gitlab.ListMergeRequestDiscussionsOptions{PerPage: 100}
 
-	// first page
-	discussions, resp, err := cw.original.Discussions.ListMergeRequestDiscussions(projectID, mr.IID, opts)
-	if err != nil {
-		log.Fatalf("failed to get discussions for mr %v: %v", mr.IID, err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		log.Fatalf("failed to list emojis, status code: %v", resp.StatusCode)
-	}
+	var (
+		discussions []*gitlab.Discussion
+		opts        = &gitlab.ListMergeRequestDiscussionsOptions{PerPage: 100}
+	)
 
-	// following pages
-	for page := 2; page <= resp.TotalPages; page++ {
-		opts.Page = page
-
+	for {
 		pageDiscussions, resp, err := cw.original.Discussions.ListMergeRequestDiscussions(projectID, mr.IID, opts)
 		if err != nil {
 			log.Fatalf("failed to list emojis for MR %v: %v", mr.IID, err)
@@ -186,6 +176,10 @@ func (cw *clientWrapper) loadDiscussions(projectID int, mr *gitlab.MergeRequest)
 			log.Fatalf("failed to list emojis, status code: %v", resp.StatusCode)
 		}
 		discussions = append(discussions, pageDiscussions...)
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
 	}
 
 	return discussions
@@ -232,18 +226,13 @@ func filterOpenDiscussions(mergeRequests []*gitlab.MergeRequest, discussions []*
 
 // loadEmojis returns all emoji reactions of the particular MR.
 func (cw *clientWrapper) loadEmojis(projectID int, mr *gitlab.MergeRequest) []*gitlab.AwardEmoji {
-	opts := &gitlab.ListAwardEmojiOptions{PerPage: 100}
 
-	// first page
-	emojis, resp, err := cw.original.AwardEmoji.ListMergeRequestAwardEmoji(projectID, mr.IID, opts)
-	if err != nil {
-		log.Fatalf("failed to list emojis for MR %v: %v", mr.IID, err)
-	}
+	var (
+		emojis []*gitlab.AwardEmoji
+		opts   = &gitlab.ListAwardEmojiOptions{PerPage: 100}
+	)
 
-	// following pages
-	for page := 2; page <= resp.TotalPages; page++ {
-		opts.Page = page
-
+	for {
 		pageEmojis, resp, err := cw.original.AwardEmoji.ListMergeRequestAwardEmoji(projectID, mr.IID, opts)
 		if err != nil {
 			log.Fatalf("failed to list emojis for MR %v: %v", mr.IID, err)
@@ -252,6 +241,10 @@ func (cw *clientWrapper) loadEmojis(projectID int, mr *gitlab.MergeRequest) []*g
 			log.Fatalf("failed to list emojis, status code: %v", resp.StatusCode)
 		}
 		emojis = append(emojis, pageEmojis...)
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
 	}
 
 	return emojis
@@ -261,10 +254,12 @@ func (cw *clientWrapper) loadEmojis(projectID int, mr *gitlab.MergeRequest) []*g
 // The emojis "thumbsup" 👍 and "thumbsdown" 👎 signal the user reviewed the merge request and won't receive a reminder.
 // The emoji "sleeping" 😴 means the user won't review the code and/or doesn't want to be reminded.
 func getReviewed(mr *gitlab.MergeRequest, emojis []*gitlab.AwardEmoji) []int {
-	var reviewedBy []int
-	reviewedBy = append(reviewedBy, mr.Author.ID)
+	var reviewedBy = []int{mr.Author.ID}
+
 	for _, emoji := range emojis {
-		if emoji.Name == "thumbsup" || emoji.Name == "thumbsdown" || emoji.Name == "sleeping" {
+		if emoji.Name == "thumbsup" ||
+			emoji.Name == "thumbsdown" ||
+			emoji.Name == "sleeping" {
 			reviewedBy = append(reviewedBy, emoji.User.ID)
 		}
 	}
@@ -274,8 +269,7 @@ func getReviewed(mr *gitlab.MergeRequest, emojis []*gitlab.AwardEmoji) []int {
 
 // aggregateEmojis lists all emojis with their usage count.
 func aggregateEmojis(emojis []*gitlab.AwardEmoji) map[string]int {
-	var aggregate map[string]int
-	aggregate = make(map[string]int)
+	var aggregate = make(map[string]int)
 
 	for _, emoji := range emojis {
 		count := aggregate[emoji.Name]
