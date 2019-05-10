@@ -101,7 +101,7 @@ func newClient(host, token string) *clientWrapper {
 }
 
 func (cw *clientWrapper) projectInfo(id int) gitlab.Project {
-	p, resp, err := cw.original.Projects.GetProject(id)
+	p, resp, err := cw.original.Projects.GetProject(id, nil)
 	if err != nil {
 		log.Fatalf("failed to get project: %v", err)
 	}
