@@ -38,7 +38,7 @@ func TestAggregateReminder(t *testing.T) {
 		{MR: &gitlab.MergeRequest{Title: "MR0"}, Missing: []string{"Spidy"}, Emojis: map[string]int{":thumbsup:": 1}, Discussions: 1},
 	}
 
-	gotP, gotR := aggregate(mockedClient, 2009901, map[int]string{42: "Spidy"})
+	gotP, gotR := aggregate(mockedClient, 2009901, map[string]string{"42": "Spidy"})
 
 	require.Equal(t, expP, gotP)
 	require.Equal(t, expR, gotR)
@@ -58,7 +58,7 @@ func TestResponsiblePerson(t *testing.T) {
 			},
 		}
 
-		reviewers := map[int]string{}
+		reviewers := map[string]string{}
 		got := responsiblePerson(mr, reviewers)
 		require.Equal(t, "name-of-author", got)
 	})
@@ -76,7 +76,7 @@ func TestResponsiblePerson(t *testing.T) {
 			},
 		}
 
-		reviewers := map[int]string{5: "@author-of-mr"}
+		reviewers := map[string]string{"5": "@author-of-mr"}
 		got := responsiblePerson(mr, reviewers)
 		require.Equal(t, "@author-of-mr", got)
 	})
@@ -94,7 +94,7 @@ func TestResponsiblePerson(t *testing.T) {
 			},
 		}
 
-		reviewers := map[int]string{5: "assignee-of-mr"}
+		reviewers := map[string]string{"5": "assignee-of-mr"}
 		got := responsiblePerson(mr, reviewers)
 		require.Equal(t, "assignee-of-mr", got)
 	})
