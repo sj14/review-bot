@@ -11,7 +11,7 @@ import (
 // DefaultTemplate contains a project header and reminder messages.
 func DefaultTemplate() *template.Template {
 	const defaultTemplate = `
-# [{{.Repository.Name}}]({{.Repository.URL}})
+# [{{.Repository.Name}}]({{.Repository.HTMLURL}})
 
 **How-To**: *Got reminded? Just normally review the given pull request.*
 
