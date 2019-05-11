@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"text/template"
 
-	"github.com/sj14/review-bot/review"
 	"github.com/xanzy/go-gitlab"
 )
 
@@ -61,7 +60,7 @@ func aggregate(git client, projectID int, reviewers map[string]string) (gitlab.P
 		reviewedBy := getReviewed(mr, emojis)
 
 		// who is missing thumbs up/down
-		missing := review.MissingReviewers(reviewedBy, reviewers)
+		missing := missingReviewers(reviewedBy, reviewers)
 
 		// load all discussions of the mr
 		discussions := git.loadDiscussions(projectID, mr)
@@ -266,6 +265,24 @@ func getReviewed(mr *gitlab.MergeRequest, emojis []*gitlab.AwardEmoji) []string 
 	}
 
 	return reviewedBy
+}
+
+func missingReviewers(reviewedBy []string, approvers map[string]string) []string {
+	var missing []string
+	for userID, userName := range approvers {
+		approved := false
+		for _, approverID := range reviewedBy {
+			if userID == approverID {
+				approved = true
+				break
+			}
+		}
+		if !approved {
+			missing = append(missing, userName)
+		}
+	}
+
+	return missing
 }
 
 // aggregateEmojis lists all emojis with their usage count.

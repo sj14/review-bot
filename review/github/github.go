@@ -8,7 +8,6 @@ import (
 	"text/template"
 
 	"github.com/google/go-github/v25/github"
-	"github.com/sj14/review-bot/review"
 	"golang.org/x/oauth2"
 )
 
@@ -77,12 +76,42 @@ func AggregateReminder(token, owner, repo string, reviewers map[string]string, t
 				fmt.Printf("Added as reviewed \n")
 			}
 		}
-		missing := review.MissingReviewers(reviewedBy, reviewers)
+		missing := missingReviewers(pr.RequestedReviewers, reviewedBy, reviewers)
 		// fmt.Printf("%v, %v\n", pr.GetTitle(), missing)
 		reminders = append(reminders, reminder{pr, missing})
 	}
 	// fmt.Printf("reminders: %v\n", reminders)
 	return execTemplate(template, repository, reminders)
+}
+
+func missingReviewers(requested []*github.User, reviewedBy []string, mapping map[string]string) []string {
+	var missing []string
+
+	for _, requested := range requested {
+		approved := false
+		added := false
+
+		for userID, userName := range mapping {
+			if requested.GetLogin() != userID {
+				continue
+			}
+			for _, approverID := range reviewedBy {
+				if userID == approverID {
+					approved = true
+					break
+				}
+			}
+			if !approved {
+				missing = append(missing, userName)
+				added = true
+			}
+		}
+		// missing mapping
+		if !added {
+			missing = append(missing, requested.GetLogin())
+		}
+	}
+	return missing
 }
 
 func isRequestedReviewer(reviewers []*github.User, requested *github.User) bool {
