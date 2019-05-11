@@ -9,9 +9,9 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/sj14/review-bot/hoster/github"
+	"github.com/sj14/review-bot/hoster/gitlab"
 	"github.com/sj14/review-bot/mattermost"
-	"github.com/sj14/review-bot/review/github"
-	"github.com/sj14/review-bot/review/gitlab"
 )
 
 func main() {
