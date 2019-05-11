@@ -18,6 +18,7 @@ type reminder struct {
 	Emojis      map[string]int
 }
 
+// AggregateReminder will generate the reminder message.
 func AggregateReminder(token, owner, repo string, reviewers map[string]string, template *template.Template) string {
 	ctx := context.Background()
 
