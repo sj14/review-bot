@@ -3,10 +3,9 @@
 [![Build Status](https://dev.azure.com/SimonJuergensmeyer/SimonJuergensmeyer/_apis/build/status/sj14.review-bot?branchName=master)](https://dev.azure.com/SimonJuergensmeyer/SimonJuergensmeyer/_build/latest?definitionId=2&branchName=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/sj14/review-bot)](https://goreportcard.com/report/github.com/sj14/review-bot)
 
-`review-bot` sends a reminder message to Mattermost (Slack probably too) with all open pull/merge requests which need an approval.  
-Well suitable for running as a cron-job, e.g. for daily reminders.
+`review-bot` sends a reminder message to Mattermost (Slack probably too) with all open pull/merge requests which need an approval. Well suitable for running as a cron-job, e.g. for daily reminders.
 
-This tool is still a **beta** version.The Gitlab backend is more mature while the Github backend is an early preview.
+This tool is still a **beta** version. The Gitlab backend is more mature while the Github backend is an early preview.
 
 ## Installation
 
@@ -82,7 +81,7 @@ review-bot -host=$GITLAB_HOST -token=$GITLAB_API_TOKEN -project=1 -webhook=$WEBH
 ## Templates
 
 We use the Go [template](https://golang.org/pkg/text/template/) package for parsing.
-Depending on which backend you use, there are different fields you can use. Check the `examples` folder for a quick overview.
+Depending on which backend you use, there are different fields you can use. Check the [examples](https://github.com/sj14/review-bot/tree/master/examples) folder for a quick overview.
 
 ### Gitlab
 
