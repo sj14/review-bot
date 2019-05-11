@@ -1,0 +1,10 @@
+# [{{.Repository.Name}}]({{.Repository.HTMLURL}})
+
+**How-To**: *Got reminded? Just normally review the given pull request.*
+
+---
+
+{{range .Reminders}}
+**[{{.PR.Title}}]({{.PR.HTMLURL}})**
+{{if .Discussions}} {{.Discussions}} 💬 {{end}} {{range $emoji, $count := .Emojis}} {{$count}} :{{$emoji}}: {{end}} {{range .Missing}}{{.}} {{else}}You got all reviews, {{.PR.Owner}}.{{end}}
+{{end}}
