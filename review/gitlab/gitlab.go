@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"text/template"
 
+	"github.com/sj14/review-bot/review"
 	"github.com/xanzy/go-gitlab"
 )
 
@@ -18,7 +20,7 @@ type reminder struct {
 }
 
 // AggregateReminder will generate the reminder message.
-func AggregateReminder(host, token string, projectID int, reviewers map[int]string, template *template.Template) string {
+func AggregateReminder(host, token string, projectID int, reviewers map[string]string, template *template.Template) string {
 	// setup gitlab client
 	git := newClient(host, token)
 
@@ -33,7 +35,7 @@ func AggregateReminder(host, token string, projectID int, reviewers map[int]stri
 }
 
 // helper functions for easier testability (mocked gitlab client)
-func aggregate(git client, projectID int, reviewers map[int]string) (gitlab.Project, []reminder) {
+func aggregate(git client, projectID int, reviewers map[string]string) (gitlab.Project, []reminder) {
 	project := git.projectInfo(projectID)
 
 	// get open merge requests
@@ -59,7 +61,7 @@ func aggregate(git client, projectID int, reviewers map[int]string) (gitlab.Proj
 		reviewedBy := getReviewed(mr, emojis)
 
 		// who is missing thumbs up/down
-		missing := missingReviewers(reviewedBy, reviewers)
+		missing := review.MissingReviewers(reviewedBy, reviewers)
 
 		// load all discussions of the mr
 		discussions := git.loadDiscussions(projectID, mr)
@@ -76,7 +78,6 @@ func aggregate(git client, projectID int, reviewers map[int]string) (gitlab.Proj
 		reminders = append(reminders, reminder{mr, missing, discussionsCount, owner, emojisAggr})
 	}
 
-	// generate the reminder text
 	return project, reminders
 }
 
@@ -115,14 +116,14 @@ func (cw *clientWrapper) projectInfo(id int) gitlab.Project {
 
 // responsiblePerson returns the mattermost name of the assignee or author of the MR
 // (fallback: gitlab author name)
-func responsiblePerson(mr *gitlab.MergeRequest, reviewers map[int]string) string {
+func responsiblePerson(mr *gitlab.MergeRequest, reviewers map[string]string) string {
 	if mr.Assignee.ID != 0 {
-		if assignee, ok := reviewers[mr.Assignee.ID]; ok {
+		if assignee, ok := reviewers[strconv.Itoa(mr.Assignee.ID)]; ok {
 			return assignee
 		}
 	}
 
-	if author, ok := reviewers[mr.Author.ID]; ok {
+	if author, ok := reviewers[strconv.Itoa(mr.Author.ID)]; ok {
 		return author
 	}
 
@@ -253,14 +254,14 @@ func (cw *clientWrapper) loadEmojis(projectID int, mr *gitlab.MergeRequest) []*g
 // getReviewed returns the gitlab user id of the people who have already reviewed the MR.
 // The emojis "thumbsup" 👍 and "thumbsdown" 👎 signal the user reviewed the merge request and won't receive a reminder.
 // The emoji "sleeping" 😴 means the user won't review the code and/or doesn't want to be reminded.
-func getReviewed(mr *gitlab.MergeRequest, emojis []*gitlab.AwardEmoji) []int {
-	var reviewedBy = []int{mr.Author.ID}
+func getReviewed(mr *gitlab.MergeRequest, emojis []*gitlab.AwardEmoji) []string {
+	var reviewedBy = []string{strconv.Itoa(mr.Author.ID)}
 
 	for _, emoji := range emojis {
 		if emoji.Name == "thumbsup" ||
 			emoji.Name == "thumbsdown" ||
 			emoji.Name == "sleeping" {
-			reviewedBy = append(reviewedBy, emoji.User.ID)
+			reviewedBy = append(reviewedBy, strconv.Itoa(emoji.User.ID))
 		}
 	}
 
@@ -278,23 +279,4 @@ func aggregateEmojis(emojis []*gitlab.AwardEmoji) map[string]int {
 	}
 
 	return aggregate
-}
-
-// missingReviewers returns all reviewers which have not reacted with 👍, 👎 or 😴.
-func missingReviewers(reviewedBy []int, approvers map[int]string) []string {
-	var result []string
-	for userID, userName := range approvers {
-		approved := false
-		for _, approverID := range reviewedBy {
-			if userID == approverID {
-				approved = true
-				break
-			}
-		}
-		if !approved {
-			result = append(result, userName)
-		}
-	}
-
-	return result
 }
