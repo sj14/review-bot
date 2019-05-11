@@ -87,7 +87,7 @@ Depending on which backend you use, there are different fields you can use. Chec
 ### Gitlab
 
 Accessing `{{.Project}}` gives you access to these [fields](https://godoc.org/github.com/xanzy/go-gitlab#Project).  
-While `{{range .Reminders}}` gives you access to `{{.MR}}` which is the [merge request](https://godoc.org/github.com/xanzy/go-gitlab#MergeRequest). `{{.Missing}}` is the Slack/Mattermost handle of the missing reviewer. `{{.Discussions}}` is the number of open discussion, `{{.Owner}}` the assignee or otherwise the creator of the merge request and `{{.Emojis}}` is a map with the emoji's and their count on this merge request.
+While `{{range .Reminders}}` gives you access to `{{.MR}}` which is the [merge request](https://godoc.org/github.com/xanzy/go-gitlab#MergeRequest). `{{.Missing}}` is the Slack/Mattermost handle of the missing reviewer. `{{.Discussions}}` is the number of open discussion. `{{.Owner}}` is the Mattermost name of the assignee or otherwise the creator of the merge request. `{{.Emojis}}` is a map with the reacted emoji's and their count on this merge request.
 
 The corresponding Go structs:
 
@@ -110,7 +110,7 @@ type reminder struct {
 ### Github
 
 Accessing `{{.Repository}}` gives you access to these [fields](https://godoc.org/github.com/google/go-github/github#Repository).  
-While `{{range .Reminders}}` gives you access to `{{.PR}}` which is the [pull request](https://godoc.org/github.com/google/go-github/github#PullRequest) and `{{.Missing}}` is the Slack/Mattermost handle of the missing reviewer.
+While `{{range .Reminders}}` gives you access to `{{.PR}}` which is the [pull request](https://godoc.org/github.com/google/go-github/github#PullRequest). `{{.Owner}}` the Mattermost name of the PR creator or the Github login as fallback. `{{.Missing}}` is the Slack/Mattermost handle of the missing reviewer.
 
 ```go
 type data struct {
@@ -120,6 +120,7 @@ type data struct {
 
 type reminder struct {
 	PR          *github.PullRequest
-	Missing     []string
+      Missing     []string
+      Owner       string
 }
 ```

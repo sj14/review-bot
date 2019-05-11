@@ -19,7 +19,7 @@ func DefaultTemplate() *template.Template {
 
 {{range .Reminders}}
 **[{{.PR.Title}}]({{.PR.HTMLURL}})**
-{{if .Discussions}} {{.Discussions}} 💬 {{end}} {{range $emoji, $count := .Emojis}} {{$count}} :{{$emoji}}: {{end}} {{range .Missing}}{{.}} {{else}}You got all reviews, {{.PR.Owner}}.{{end}}
+{{if .Discussions}} {{.Discussions}} 💬 {{end}} {{range $emoji, $count := .Emojis}} {{$count}} :{{$emoji}}: {{end}} {{range .Missing}}{{.}} {{else}}You got all reviews, {{.Owner}}.{{end}}
 {{end}}
 `
 	return template.Must(template.New("default").Parse(defaultTemplate))

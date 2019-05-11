@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"text/template"
@@ -15,8 +14,8 @@ type reminder struct {
 	PR          *github.PullRequest
 	Missing     []string
 	Discussions int
-	// Owner github.User // already present in PR
-	Emojis map[string]int
+	Owner       string
+	Emojis      map[string]int
 }
 
 func AggregateReminder(token, owner, repo string, reviewers map[string]string, template *template.Template) string {
@@ -39,7 +38,6 @@ func AggregateReminder(token, owner, repo string, reviewers map[string]string, t
 		log.Fatalf("failed loading repo, status code: %v", resp.StatusCode)
 	}
 
-	fmt.Println(repository.GetName())
 	pullRequests, resp, err := client.PullRequests.List(ctx, owner, repo, nil)
 	if err != nil {
 		log.Fatalf("failed loading pull requests: %v", err)
@@ -68,11 +66,9 @@ func AggregateReminder(token, owner, repo string, reviewers map[string]string, t
 			if ok := isRequestedReviewer(pr.RequestedReviewers, rev.GetUser()); !ok {
 				continue
 			}
-			fmt.Printf("check review from %v\n", rev.GetUser().GetLogin())
 
 			if rev.GetState() == "APPROVED" || rev.GetState() == "DISMISSED" {
 				reviewedBy = append(reviewedBy, rev.GetUser().GetLogin()) // TODO: fix casting to int
-				fmt.Printf("Added as reviewed \n")
 			}
 		}
 		missing := missingReviewers(pr.RequestedReviewers, reviewedBy, reviewers)
@@ -80,8 +76,10 @@ func AggregateReminder(token, owner, repo string, reviewers map[string]string, t
 		// TODO: comments not working
 		// fmt.Printf("comments: %v, review comments: %v\n", pr.GetComments(), pr.GetReviewComments())
 
+		owner := responsiblePerson(pr, reviewers)
+
 		// TODO: reactions/emojis
-		reminders = append(reminders, reminder{pr, missing, pr.GetComments(), nil})
+		reminders = append(reminders, reminder{pr, missing, pr.GetComments(), owner, nil})
 	}
 	return execTemplate(template, repository, reminders)
 }
@@ -147,4 +145,14 @@ func isRequestedReviewer(reviewers []*github.User, requested *github.User) bool 
 		}
 	}
 	return false
+}
+
+func responsiblePerson(pr *github.PullRequest, reviewers map[string]string) string {
+	// corresponding mattermost name
+	if author, ok := reviewers[pr.GetUser().GetLogin()]; ok {
+		return author
+	}
+
+	// fallback
+	return pr.GetUser().GetLogin()
 }
