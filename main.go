@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"strings"
 	"text/template"
 
 	"github.com/sj14/review-bot/mattermost"
@@ -15,9 +16,10 @@ import (
 
 func main() {
 	var (
-		host          = flag.String("host", "gitlab.com", "GitLab host address")
+		host          = flag.String("host", "", "host address (e.g. github.com, gitlab.com or self-hosted gitlab url")
 		token         = flag.String("token", "", "host API token")
-		projectID     = flag.Int("project", 1, "GitLab project id")
+		repo          = flag.String("repo", "", "github repository (format: 'owner/repo')")
+		projectID     = flag.Int("project", 0, "gitlab project id")
 		reviewersPath = flag.String("reviewers", "examples/reviewers.json", "path to the reviewers file")
 		templatePath  = flag.String("template", "", "path to the template file")
 		webhook       = flag.String("webhook", "", "Mattermost webhook URL")
@@ -25,7 +27,10 @@ func main() {
 	)
 	flag.Parse()
 
-	// setup
+	if *host == "" {
+		log.Fatalln("missing host")
+	}
+
 	reviewers := loadReviewers(*reviewersPath)
 
 	var tmpl *template.Template
@@ -39,8 +44,19 @@ func main() {
 
 	var reminder string
 	if *host == "github.com" {
-		reminder = github.AggregateReminder(*token, "kubernetes", "enhancements", reviewers, tmpl)
+		if *repo == "" {
+			log.Fatalln("missing github repository")
+		}
+
+		ownerRespo := strings.SplitN(*repo, "/", 2)
+		if len(ownerRespo) != 2 {
+			log.Fatalln("wrong repo format (use 'owner/repo')")
+		}
+		reminder = github.AggregateReminder(*token, ownerRespo[0], ownerRespo[1], reviewers, tmpl)
 	} else {
+		if *projectID == 0 {
+			log.Fatalln("missing gitlab project id")
+		}
 		reminder = gitlab.AggregateReminder(*host, *token, *projectID, reviewers, tmpl)
 	}
 
@@ -48,7 +64,6 @@ func main() {
 		return
 	}
 
-	// output
 	fmt.Println(reminder)
 
 	if *channel != "" {
