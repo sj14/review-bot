@@ -11,15 +11,15 @@ import (
 // DefaultTemplate contains a project header and reminder messages.
 func DefaultTemplate() *template.Template {
 	const defaultTemplate = `
-#[{{.Repository.Name}}]({{.Repository.URL}})
+# [{{.Repository.Name}}]({{.Repository.URL}})
 
-**How-To**: *Got reminded? Just normally review the given merge request with 👍/👎 or use 😴 if you don't want to receive a reminder about this merge request.*
+**How-To**: *Got reminded? Just normally review the given pull request.*
 
 ---
 
 {{range .Reminders}}
 **[{{.PR.Title}}]({{.PR.HTMLURL}})**
-{{range .Missing}}{{.}} {{else}}You got all reviews, .Owner.{{end}}
+{{if .Discussions}} {{.Discussions}} 💬 {{end}} {{range $emoji, $count := .Emojis}} {{$count}} :{{$emoji}}: {{end}} {{range .Missing}}{{.}} {{else}}You got all reviews, {{.PR.Owner}}.{{end}}
 {{end}}
 `
 	return template.Must(template.New("default").Parse(defaultTemplate))
@@ -34,7 +34,6 @@ func execTemplate(template *template.Template, repository *github.Repository, re
 		repository,
 		reminders,
 	}
-
 	buffer := bytes.NewBuffer([]byte{})
 
 	if err := template.Execute(buffer, data); err != nil {

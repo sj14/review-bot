@@ -12,11 +12,11 @@ import (
 )
 
 type reminder struct {
-	PR      *github.PullRequest
-	Missing []string
-	// Discussions int
+	PR          *github.PullRequest
+	Missing     []string
+	Discussions int
 	// Owner github.User // already present in PR
-	// Emojis      map[string]int
+	Emojis map[string]int
 }
 
 func AggregateReminder(token, owner, repo string, reviewers map[string]string, template *template.Template) string {
@@ -55,13 +55,12 @@ func AggregateReminder(token, owner, repo string, reviewers map[string]string, t
 			continue
 		}
 
-		// fmt.Printf("checking pr: %v\n", pr.GetTitle())
 		reviews, resp, err := client.PullRequests.ListReviews(ctx, owner, repo, pr.GetNumber(), &github.ListOptions{1, 10}) // TODO: pagination
 		if err != nil {
-			log.Fatalf("failed loading reactions: %v", err)
+			log.Fatalf("failed loading reviews: %v", err)
 		}
 		if resp.StatusCode != http.StatusOK {
-			log.Fatalf("failed loading reactions, status code: %v", resp.StatusCode)
+			log.Fatalf("failed loading reviews, status code: %v", resp.StatusCode)
 		}
 
 		var reviewedBy []string
@@ -77,11 +76,38 @@ func AggregateReminder(token, owner, repo string, reviewers map[string]string, t
 			}
 		}
 		missing := missingReviewers(pr.RequestedReviewers, reviewedBy, reviewers)
-		// fmt.Printf("%v, %v\n", pr.GetTitle(), missing)
-		reminders = append(reminders, reminder{pr, missing})
+
+		// TODO: comments not working
+		// fmt.Printf("comments: %v, review comments: %v\n", pr.GetComments(), pr.GetReviewComments())
+
+		// TODO: reactions/emojis
+		reminders = append(reminders, reminder{pr, missing, pr.GetComments(), nil})
 	}
-	// fmt.Printf("reminders: %v\n", reminders)
 	return execTemplate(template, repository, reminders)
+}
+
+func prepareReactions(reactions *github.Reactions) map[string]int {
+	result := make(map[string]int)
+
+	if i := reactions.GetConfused(); i > 0 {
+		result[":confused:"] = i
+	}
+	if i := reactions.GetHeart(); i > 0 {
+		result[":heart:"] = i
+	}
+	if i := reactions.GetHooray(); i > 0 {
+		result[":hooray:"] = i
+	}
+	if i := reactions.GetLaugh(); i > 0 {
+		result[":laugh:"] = i
+	}
+	if i := reactions.GetMinusOne(); i > 0 {
+		result[":-1:"] = i
+	}
+	if i := reactions.GetPlusOne(); i > 0 {
+		result[":+1:"] = i
+	}
+	return result
 }
 
 func missingReviewers(requested []*github.User, reviewedBy []string, mapping map[string]string) []string {

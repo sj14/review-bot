@@ -28,12 +28,13 @@ func main() {
 	// setup
 	reviewers := loadReviewers(*reviewersPath)
 
-	tmpl := gitlab.DefaultTemplate()
-	if *host == "github.com" {
-		tmpl = github.DefaultTemplate()
-	}
+	var tmpl *template.Template
 	if *templatePath != "" {
 		tmpl = loadTemplate(*templatePath)
+	} else if *host == "github.com" {
+		tmpl = github.DefaultTemplate()
+	} else {
+		tmpl = gitlab.DefaultTemplate()
 	}
 
 	var reminder string
