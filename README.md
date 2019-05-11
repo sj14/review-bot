@@ -3,7 +3,10 @@
 [![Build Status](https://dev.azure.com/SimonJuergensmeyer/SimonJuergensmeyer/_apis/build/status/sj14.review-bot?branchName=master)](https://dev.azure.com/SimonJuergensmeyer/SimonJuergensmeyer/_build/latest?definitionId=2&branchName=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/sj14/review-bot)](https://goreportcard.com/report/github.com/sj14/review-bot)
 
-`review-bot` sends a reminder message to Mattermost (Slack probably too) with all open pull/merge requests which need an approval.
+`review-bot` sends a reminder message to Mattermost (Slack probably too) with all open pull/merge requests which need an approval.  
+Well suitable for running as a cron-job, e.g. for daily reminders.
+
+This tool is still a **beta** version.The Gitlab backend is more mature while the Github backend is an early preview.
 
 ## Installation
 
@@ -13,7 +16,7 @@ go install github.com/sj14/review-bot
 
 ## Example
 
-### Sample Output for GitLab
+### Sample Output for Gitlab
 
 ># [Project Name](https://gitlab.com/my_user/my_project)
 >
