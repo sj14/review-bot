@@ -72,11 +72,11 @@ func TestResponsiblePerson(t *testing.T) {
 				State     string     `json:"state"`
 				CreatedAt *time.Time `json:"created_at"`
 			}{
-				ID: 5,
+				Username: "gitlab_name",
 			},
 		}
 
-		reviewers := map[string]string{"5": "@author-of-mr"}
+		reviewers := map[string]string{"gitlab_name": "@author-of-mr"}
 		got := responsiblePerson(mr, reviewers)
 		require.Equal(t, "@author-of-mr", got)
 	})
@@ -90,11 +90,11 @@ func TestResponsiblePerson(t *testing.T) {
 				State     string     `json:"state"`
 				CreatedAt *time.Time `json:"created_at"`
 			}{
-				ID: 5,
+				Username: "gitlab_name",
 			},
 		}
 
-		reviewers := map[string]string{"5": "assignee-of-mr"}
+		reviewers := map[string]string{"gitlab_name": "assignee-of-mr"}
 		got := responsiblePerson(mr, reviewers)
 		require.Equal(t, "assignee-of-mr", got)
 	})
