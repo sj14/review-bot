@@ -1,0 +1,8 @@
+*{{.Project.Name}}]*
+
+*How-To*: _Got reminded? Just normally review the given merge request with 👍/👎 or use 😴 if you don't want to receive a reminder about this merge request._
+
+{{range .Reminders}}
+*{{.MR.Title}}*: {{.MR.WebURL}}
+{{if .Discussions}} {{.Discussions}} 💬 {{end}} {{range $emoji, $count := .Emojis}} {{$count}} :{{$emoji}}: {{end}} {{range .Missing}}&lt;{{.}}&gt; {{else}}You got all reviews, &lt;{{.Owner}}&gt;.{{end}}
+{{end}}

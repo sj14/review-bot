@@ -11,18 +11,18 @@ import (
 
 	"github.com/sj14/review-bot/hoster/github"
 	"github.com/sj14/review-bot/hoster/gitlab"
-	"github.com/sj14/review-bot/mattermost"
+	"github.com/sj14/review-bot/slackermost"
 )
 
 func main() {
 	var (
-		host          = flag.String("host", "", "host address (e.g. github.com, gitlab.com or self-hosted gitlab url")
+		host          = flag.String("host", "", "host address (e.g. github.com, gitlab.com or self-hosted gitlab url)")
 		token         = flag.String("token", "", "host API token")
 		repo          = flag.String("repo", "", "repository (format: 'owner/repo'), or project id (only gitlab)")
 		reviewersPath = flag.String("reviewers", "examples/reviewers.json", "path to the reviewers file")
 		templatePath  = flag.String("template", "", "path to the template file")
-		webhook       = flag.String("webhook", "", "Mattermost webhook URL")
-		channel       = flag.String("channel", "", "Mattermost channel (e.g. MyChannel) or user (e.g. @AnyUser)")
+		webhook       = flag.String("webhook", "", "slack/mattermost webhook URL")
+		channel       = flag.String("channel", "", "mattermost channel (e.g. MyChannel) or user (e.g. @AnyUser)")
 	)
 	flag.Parse()
 
@@ -61,8 +61,8 @@ func main() {
 
 	fmt.Println(reminder)
 
-	if *channel != "" {
-		mattermost.Send(*channel, reminder, *webhook)
+	if *webhook != "" {
+		slackermost.Send(*channel, reminder, *webhook)
 	}
 }
 

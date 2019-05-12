@@ -1,17 +1,26 @@
-package mattermost
+package slackermost
 
 import (
 	"bytes"
-	"fmt"
+	"encoding/json"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 )
 
-// Send text to mattermost channel.
+type message struct {
+	User    string `json:"username,omitempty"` // only mattermost(?)
+	Channel string `json:"channel,omitempty"`  // only mattermost(?)
+	Text    string `json:"text"`
+}
+
+// Send text to Slack or Mattermost channel.
 func Send(channel, text, webhook string) {
-	payload := []byte(fmt.Sprintf(`{"channel": "%s", "username": "Review Bot 🧐", "text": "%s"}`, channel, text))
+	payload, err := json.Marshal(message{User: "Review Bot 🧐", Channel: channel, Text: text})
+	if err != nil {
+		log.Fatalf("failed to marshal message: %v", err)
+	}
 
 	req, err := http.NewRequest(http.MethodPost, webhook, bytes.NewBuffer(payload))
 	if err != nil {

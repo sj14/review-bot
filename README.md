@@ -5,7 +5,7 @@
 
 `review-bot` sends a reminder message to Mattermost (Slack probably too) with all open pull/merge requests which need an approval. Well suitable for running as a cron-job, e.g. for daily reminders.
 
-This tool is still a **beta** version. The Gitlab backend is more mature while the Github backend is an early preview.
+This tool is still **beta**. The usage with Gitlab and Mattermost is more mature while the Github and Slack usage is an early preview.
 
 ## Installation
 
@@ -37,7 +37,7 @@ go install github.com/sj14/review-bot
 
 ### Configuration
 
-The reviewers.json file contains the `gitlab_user_id: "@mattermost_name"` respectively `github_user_name: "@mattermost_name"`.
+The reviewers.json file contains the `gitlab_user_id: "@slackermost_name"` respectively `github_user_name: "@slackermost_name"`.
 
 ```json
 {
@@ -61,9 +61,9 @@ review-bot -host=$GITLAB_HOST -token=$GITLAB_API_TOKEN -repo=owner/repo -webhook
 
 ``` text
   -channel string
-        Mattermost channel (e.g. MyChannel) or user (e.g. @AnyUser)
+        mattermost channel (e.g. MyChannel) or user (e.g. @AnyUser)
   -host string
-        host address (e.g. github.com, gitlab.com or self-hosted gitlab url
+        host address (e.g. github.com, gitlab.com or self-hosted gitlab url)
   -repo string
         repository (format: 'owner/repo'), or project id (only gitlab)
   -reviewers string
@@ -73,7 +73,7 @@ review-bot -host=$GITLAB_HOST -token=$GITLAB_API_TOKEN -repo=owner/repo -webhook
   -token string
         host API token
   -webhook string
-        Mattermost webhook URL
+        slack/mattermost webhook URL
 ```
 
 ## Templates
