@@ -37,7 +37,9 @@ go install github.com/sj14/review-bot
 
 ### Configuration
 
-The reviewers.json file contains the `gitlab_user_id: "@slackermost_name"` respectively `github_user_name: "@slackermost_name"`.
+The reviewers.json file contains the gitlab user id or github login name as key and the mattermost name or slack [user id](https://api.slack.com/methods/users.identity) as value.
+
+**Example 1**: gitlab user id and mattermost name
 
 ```json
 {
@@ -46,6 +48,18 @@ The reviewers.json file contains the `gitlab_user_id: "@slackermost_name"` respe
     "92": "@groot",
     "95": "@batman",
     "123": "@daredevil"
+}
+```
+
+**Example 2**: github login and slack id
+
+```json
+{
+    "hulk": "@U024BE7LH",
+    "iron_man": "U0G9QF9C6",
+    "groot": "@U0JA38A",
+    "batman": "@U0QM9L4",
+    "daredevil": "@U0JMB8O1"
 }
 ```
 

@@ -4,5 +4,5 @@
 
 {{range .Reminders}}
 *{{.PR.Title}}*: {{.PR.HTMLURL}}
-{{if .Discussions}} {{.Discussions}} 💬 {{end}} {{range $emoji, $count := .Emojis}} {{$count}} :{{$emoji}}: {{end}} {{range .Missing}}&lt;{{.}}&gt; {{else}}You got all reviews, &lt;{{.PR.Owner}}&gt;.{{end}}
+{{if .Discussions}} {{.Discussions}} 💬 {{end}} {{range $emoji, $count := .Emojis}} {{$count}} :{{$emoji}}: {{end}} {{range .Missing}}<{{.}}>; {{else}}You got all reviews, <{{.PR.Owner}}>;.{{end}}
 {{end}}
