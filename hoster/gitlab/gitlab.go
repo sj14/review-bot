@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 	"text/template"
 
 	"github.com/xanzy/go-gitlab"
@@ -116,13 +115,13 @@ func (cw *clientWrapper) projectInfo(repo interface{}) gitlab.Project {
 // responsiblePerson returns the mattermost name of the assignee or author of the MR
 // (fallback: gitlab author name)
 func responsiblePerson(mr *gitlab.MergeRequest, reviewers map[string]string) string {
-	if mr.Assignee.ID != 0 {
-		if assignee, ok := reviewers[strconv.Itoa(mr.Assignee.ID)]; ok {
+	if mr.Assignee.Username != "" {
+		if assignee, ok := reviewers[mr.Assignee.Username]; ok {
 			return assignee
 		}
 	}
 
-	if author, ok := reviewers[strconv.Itoa(mr.Author.ID)]; ok {
+	if author, ok := reviewers[mr.Author.Username]; ok {
 		return author
 	}
 
@@ -254,13 +253,13 @@ func (cw *clientWrapper) loadEmojis(repo interface{}, mr *gitlab.MergeRequest) [
 // The emojis "thumbsup" 👍 and "thumbsdown" 👎 signal the user reviewed the merge request and won't receive a reminder.
 // The emoji "sleeping" 😴 means the user won't review the code and/or doesn't want to be reminded.
 func getReviewed(mr *gitlab.MergeRequest, emojis []*gitlab.AwardEmoji) []string {
-	var reviewedBy = []string{strconv.Itoa(mr.Author.ID)}
+	var reviewedBy = []string{mr.Author.Username}
 
 	for _, emoji := range emojis {
 		if emoji.Name == "thumbsup" ||
 			emoji.Name == "thumbsdown" ||
 			emoji.Name == "sleeping" {
-			reviewedBy = append(reviewedBy, strconv.Itoa(emoji.User.ID))
+			reviewedBy = append(reviewedBy, emoji.User.Username)
 		}
 	}
 
