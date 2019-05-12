@@ -92,16 +92,16 @@ The corresponding Go structs:
 
 ```go
 type data struct {
-	Project   gitlab.Project
-	Reminders []reminder
+      Project   gitlab.Project
+      Reminders []reminder
 }
 
 type reminder struct {
-	MR          *gitlab.MergeRequest
-	Missing     []string
-	Discussions int
-	Owner       string
-	Emojis      map[string]int
+      MR          *gitlab.MergeRequest
+      Missing     []string
+      Discussions int
+      Owner       string
+      Emojis      map[string]int
 }
 ```
 
@@ -113,12 +113,12 @@ While `{{range .Reminders}}` gives you access to `{{.PR}}` which is the [pull re
 
 ```go
 type data struct {
-	Repository *github.Repository
-	Reminders  []reminder
+      Repository *github.Repository
+      Reminders  []reminder
 }
 
 type reminder struct {
-	PR          *github.PullRequest
+      PR          *github.PullRequest
       Missing     []string
       Owner       string
 }
