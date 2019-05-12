@@ -51,10 +51,10 @@ The reviewers.json file contains the `gitlab_user_id: "@mattermost_name"` respec
 
 ### Running
 
-Get all open merge requests from the Gitlab project with ID `1` and post the resulting reminder to the specified Mattermost channel:
+Get all open merge requests from the Gitlab project `owner/repo` and post the resulting reminder to the specified Mattermost channel:
 
 ``` text
-review-bot -host=$GITLAB_HOST -token=$GITLAB_API_TOKEN -project=1 -webhook=$WEBHOOK_ADDRESS -channel=$MATTERMOST_CHANNEL
+review-bot -host=$GITLAB_HOST -token=$GITLAB_API_TOKEN -repo=owner/repo -webhook=$WEBHOOK_ADDRESS -channel=$MATTERMOST_CHANNEL
 ```
 
 ## Command Line Flags
@@ -64,10 +64,8 @@ review-bot -host=$GITLAB_HOST -token=$GITLAB_API_TOKEN -project=1 -webhook=$WEBH
         Mattermost channel (e.g. MyChannel) or user (e.g. @AnyUser)
   -host string
         host address (e.g. github.com, gitlab.com or self-hosted gitlab url
-  -project int
-        gitlab project id
   -repo string
-        github repository (format: 'owner/repo')
+        repository (format: 'owner/repo'), or project id (only gitlab)
   -reviewers string
         path to the reviewers file (default "examples/reviewers.json")
   -template string

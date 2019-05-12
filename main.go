@@ -18,8 +18,7 @@ func main() {
 	var (
 		host          = flag.String("host", "", "host address (e.g. github.com, gitlab.com or self-hosted gitlab url")
 		token         = flag.String("token", "", "host API token")
-		repo          = flag.String("repo", "", "github repository (format: 'owner/repo')")
-		projectID     = flag.Int("project", 0, "gitlab project id")
+		repo          = flag.String("repo", "", "repository (format: 'owner/repo'), or project id (only gitlab)")
 		reviewersPath = flag.String("reviewers", "examples/reviewers.json", "path to the reviewers file")
 		templatePath  = flag.String("template", "", "path to the template file")
 		webhook       = flag.String("webhook", "", "Mattermost webhook URL")
@@ -29,6 +28,9 @@ func main() {
 
 	if *host == "" {
 		log.Fatalln("missing host")
+	}
+	if *repo == "" {
+		log.Fatalln("missing repository")
 	}
 
 	reviewers := loadReviewers(*reviewersPath)
@@ -44,20 +46,13 @@ func main() {
 
 	var reminder string
 	if *host == "github.com" {
-		if *repo == "" {
-			log.Fatalln("missing github repository")
-		}
-
 		ownerRespo := strings.SplitN(*repo, "/", 2)
 		if len(ownerRespo) != 2 {
 			log.Fatalln("wrong repo format (use 'owner/repo')")
 		}
 		reminder = github.AggregateReminder(*token, ownerRespo[0], ownerRespo[1], reviewers, tmpl)
 	} else {
-		if *projectID == 0 {
-			log.Fatalln("missing gitlab project id")
-		}
-		reminder = gitlab.AggregateReminder(*host, *token, *projectID, reviewers, tmpl)
+		reminder = gitlab.AggregateReminder(*host, *token, *repo, reviewers, tmpl)
 	}
 
 	if reminder == "" {
