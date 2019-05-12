@@ -10,20 +10,20 @@ import (
 
 func TestAggregateReminder(t *testing.T) {
 	mockedClient := &clientMock{
-		projectInfoFunc: func(id int) gitlab.Project {
+		projectInfoFunc: func(repo interface{}) gitlab.Project {
 			return gitlab.Project{Name: "mocked project"}
 		},
-		openMergeRequestsFunc: func(projectID int) []*gitlab.MergeRequest {
+		openMergeRequestsFunc: func(repo interface{}) []*gitlab.MergeRequest {
 			return []*gitlab.MergeRequest{
 				{Title: "MR0"},
 			}
 		},
-		loadEmojisFunc: func(projectID int, mr *gitlab.MergeRequest) []*gitlab.AwardEmoji {
+		loadEmojisFunc: func(repo interface{}, mr *gitlab.MergeRequest) []*gitlab.AwardEmoji {
 			return []*gitlab.AwardEmoji{
 				{Name: ":thumbsup:"},
 			}
 		},
-		loadDiscussionsFunc: func(projectID int, mr *gitlab.MergeRequest) []*gitlab.Discussion {
+		loadDiscussionsFunc: func(repo interface{}, mr *gitlab.MergeRequest) []*gitlab.Discussion {
 			return []*gitlab.Discussion{
 				{ID: "id0", Notes: []*gitlab.Note{{Resolved: false, Resolvable: true}}},
 			}
