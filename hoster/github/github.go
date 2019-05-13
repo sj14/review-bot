@@ -1,13 +1,9 @@
 package github
 
 import (
-	"context"
-	"log"
-	"net/http"
 	"text/template"
 
 	"github.com/google/go-github/v25/github"
-	"golang.org/x/oauth2"
 )
 
 type reminder struct {
@@ -20,58 +16,22 @@ type reminder struct {
 
 // AggregateReminder will generate the reminder message.
 func AggregateReminder(token, owner, repo string, reviewers map[string]string, template *template.Template) string {
-	ctx := context.Background()
-
-	client := github.NewClient(nil)
-	if token != "" {
-		ts := oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: token},
-		)
-		tc := oauth2.NewClient(ctx, ts)
-		client = github.NewClient(tc)
-	}
-
-	repository, resp, err := client.Repositories.Get(ctx, owner, repo)
-	if err != nil {
-		log.Fatalf("failed loading repo: %v", err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		log.Fatalf("failed loading repo, status code: %v", resp.StatusCode)
-	}
-
-	pullRequests, resp, err := client.PullRequests.List(ctx, owner, repo, nil)
-	if err != nil {
-		log.Fatalf("failed loading pull requests: %v", err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		log.Fatalf("failed loading pull requests, status code: %v", resp.StatusCode)
-	}
-
-	var reminders []reminder
+	var (
+		reminders    []reminder
+		git          = newClient(token)
+		repository   = git.loadRepository(owner, repo)
+		pullRequests = git.loadPRs(owner, repo)
+	)
 
 	for _, pr := range pullRequests {
 		if pr.GetDraft() {
 			continue
 		}
 
-		reviews, resp, err := client.PullRequests.ListReviews(ctx, owner, repo, pr.GetNumber(), &github.ListOptions{1, 10}) // TODO: pagination
-		if err != nil {
-			log.Fatalf("failed loading reviews: %v", err)
-		}
-		if resp.StatusCode != http.StatusOK {
-			log.Fatalf("failed loading reviews, status code: %v", resp.StatusCode)
-		}
+		reviews := git.loadReviews(owner, repo, pr.GetNumber())
 
-		var reviewedBy []string
-		for _, rev := range reviews {
-			if ok := isRequestedReviewer(pr.RequestedReviewers, rev.GetUser()); !ok {
-				continue
-			}
+		reviewedBy := getReviwed(pr, reviews)
 
-			if rev.GetState() == "APPROVED" || rev.GetState() == "DISMISSED" {
-				reviewedBy = append(reviewedBy, rev.GetUser().GetLogin()) // TODO: fix casting to int
-			}
-		}
 		missing := missingReviewers(pr.RequestedReviewers, reviewedBy, reviewers)
 
 		// TODO: comments not working
@@ -83,6 +43,20 @@ func AggregateReminder(token, owner, repo string, reviewers map[string]string, t
 		reminders = append(reminders, reminder{pr, missing, pr.GetComments(), owner, nil})
 	}
 	return execTemplate(template, repository, reminders)
+}
+
+func getReviwed(pr *github.PullRequest, reviews []*github.PullRequestReview) []string {
+	var reviewedBy []string
+	for _, rev := range reviews {
+		if ok := isRequestedReviewer(pr.RequestedReviewers, rev.GetUser()); !ok {
+			continue
+		}
+
+		if rev.GetState() == "APPROVED" || rev.GetState() == "DISMISSED" {
+			reviewedBy = append(reviewedBy, rev.GetUser().GetLogin()) // TODO: fix casting to int
+		}
+	}
+	return reviewedBy
 }
 
 func prepareReactions(reactions *github.Reactions) map[string]int {
