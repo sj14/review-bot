@@ -249,6 +249,12 @@ func (cw *clientWrapper) loadEmojis(repo interface{}, mr *gitlab.MergeRequest) [
 	return emojis
 }
 
+const (
+	thumbsup   = "thumbsup"
+	thumbsdown = "thumbsdown"
+	sleeping   = "sleeping"
+)
+
 // getReviewed returns the gitlab user id of the people who have already reviewed the MR.
 // The emojis "thumbsup" 👍 and "thumbsdown" 👎 signal the user reviewed the merge request and won't receive a reminder.
 // The emoji "sleeping" 😴 means the user won't review the code and/or doesn't want to be reminded.
@@ -256,9 +262,9 @@ func getReviewed(mr *gitlab.MergeRequest, emojis []*gitlab.AwardEmoji) []string 
 	var reviewedBy = []string{mr.Author.Username}
 
 	for _, emoji := range emojis {
-		if emoji.Name == "thumbsup" ||
-			emoji.Name == "thumbsdown" ||
-			emoji.Name == "sleeping" {
+		if emoji.Name == thumbsup ||
+			emoji.Name == thumbsdown ||
+			emoji.Name == sleeping {
 			reviewedBy = append(reviewedBy, emoji.User.Username)
 		}
 	}
