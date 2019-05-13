@@ -3,7 +3,7 @@
 [![Build Status](https://dev.azure.com/SimonJuergensmeyer/SimonJuergensmeyer/_apis/build/status/sj14.review-bot?branchName=master)](https://dev.azure.com/SimonJuergensmeyer/SimonJuergensmeyer/_build/latest?definitionId=2&branchName=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/sj14/review-bot)](https://goreportcard.com/report/github.com/sj14/review-bot)
 
-`review-bot` sends a reminder message to Mattermost (Slack probably too) with all open pull/merge requests which need an approval. Well suitable for running as a cron-job, e.g. for daily reminders.
+`review-bot` sends a reminder message to Mattermost or Slack with all open pull/merge requests which need an approval. Well suitable for running as a cron-job, e.g. for daily reminders.
 
 This tool is still **beta**. The usage with Gitlab and Mattermost is more mature while the Github and Slack usage is an early preview.
 
@@ -15,7 +15,7 @@ go install github.com/sj14/review-bot
 
 ## Example
 
-### Sample Output for Gitlab
+### Sample Output for Gitlab and Mattermost
 
 ># [Project Name](https://gitlab.com/my_user/my_project)
 >
@@ -37,7 +37,7 @@ go install github.com/sj14/review-bot
 
 ### Configuration
 
-The reviewers.json file contains the gitlab/github user name as key and the mattermost name or slack [user id](https://api.slack.com/methods/users.identity) as value.
+The `reviewers.json` file contains the gitlab/github user name as key and the mattermost name or slack [user id](https://api.slack.com/methods/users.identity) as value.
 
 **Example 1**: github/gitlab username and mattermost name
 
