@@ -1,9 +1,6 @@
 package gitlab
 
 import (
-	"fmt"
-	"log"
-	"net/http"
 	"text/template"
 
 	"github.com/xanzy/go-gitlab"
@@ -33,11 +30,11 @@ func AggregateReminder(host, token string, repo interface{}, reviewers map[strin
 }
 
 // helper functions for easier testability (mocked gitlab client)
-func aggregate(git client, repo interface{}, reviewers map[string]string) (gitlab.Project, []reminder) {
-	project := git.projectInfo(repo)
+func aggregate(git clientWrapper, repo interface{}, reviewers map[string]string) (gitlab.Project, []reminder) {
+	project := git.loadProject(repo)
 
 	// get open merge requests
-	mergeRequests := git.openMergeRequests(repo)
+	mergeRequests := git.loadMRs(repo)
 
 	// TODO: add option
 	// only return merge requests which have no open discussions
@@ -79,39 +76,6 @@ func aggregate(git client, repo interface{}, reviewers map[string]string) (gitla
 	return project, reminders
 }
 
-//go:generate moq -out client_moq_test.go . client
-type client interface {
-	projectInfo(repo interface{}) gitlab.Project
-	openMergeRequests(repo interface{}) []*gitlab.MergeRequest
-	loadEmojis(repo interface{}, mr *gitlab.MergeRequest) []*gitlab.AwardEmoji
-	loadDiscussions(repo interface{}, mr *gitlab.MergeRequest) []*gitlab.Discussion
-}
-
-type clientWrapper struct {
-	original *gitlab.Client
-}
-
-// newClient returns a new gitlab client.
-func newClient(host, token string) *clientWrapper {
-	client := gitlab.NewClient(nil, token)
-	if err := client.SetBaseURL(fmt.Sprintf("https://%s/api/v4", host)); err != nil {
-		log.Fatalf("failed to set gitlab host: %v", err)
-	}
-	return &clientWrapper{original: client}
-}
-
-func (cw *clientWrapper) projectInfo(repo interface{}) gitlab.Project {
-	p, resp, err := cw.original.Projects.GetProject(repo, nil)
-	if err != nil {
-		log.Fatalf("failed to get project: %v", err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		log.Fatalf("failed to get project, status code: %v", resp.StatusCode)
-	}
-
-	return *p
-}
-
 // responsiblePerson returns the mattermost name of the assignee or author of the MR
 // (fallback: gitlab author name)
 func responsiblePerson(mr *gitlab.MergeRequest, reviewers map[string]string) string {
@@ -126,62 +90,6 @@ func responsiblePerson(mr *gitlab.MergeRequest, reviewers map[string]string) str
 	}
 
 	return mr.Author.Name
-}
-
-// openMergeRequests returns all open merge requests of the given project.
-func (cw *clientWrapper) openMergeRequests(repo interface{}) []*gitlab.MergeRequest {
-	// options
-	var (
-		mergeRequests []*gitlab.MergeRequest
-		state         = "opened"
-		opts          = &gitlab.ListProjectMergeRequestsOptions{
-			State:       &state,
-			ListOptions: gitlab.ListOptions{PerPage: 100},
-		}
-	)
-
-	for {
-		pageMRs, resp, err := cw.original.MergeRequests.ListProjectMergeRequests(repo, opts)
-		if err != nil {
-			log.Fatalf("failed to list project merge requests: %v", err)
-		}
-		if resp.StatusCode != http.StatusOK {
-			log.Fatalf("failed to list project merge requests, status code: %v", resp.StatusCode)
-		}
-		mergeRequests = append(mergeRequests, pageMRs...)
-		if resp.NextPage == 0 {
-			break
-		}
-		opts.Page = resp.NextPage
-	}
-
-	return mergeRequests
-}
-
-// loadDiscussions of the given MR.
-func (cw *clientWrapper) loadDiscussions(repo interface{}, mr *gitlab.MergeRequest) []*gitlab.Discussion {
-
-	var (
-		discussions []*gitlab.Discussion
-		opts        = &gitlab.ListMergeRequestDiscussionsOptions{PerPage: 100}
-	)
-
-	for {
-		pageDiscussions, resp, err := cw.original.Discussions.ListMergeRequestDiscussions(repo, mr.IID, opts)
-		if err != nil {
-			log.Fatalf("failed to list emojis for MR %v: %v", mr.IID, err)
-		}
-		if resp.StatusCode != http.StatusOK {
-			log.Fatalf("failed to list emojis, status code: %v", resp.StatusCode)
-		}
-		discussions = append(discussions, pageDiscussions...)
-		if resp.NextPage == 0 {
-			break
-		}
-		opts.Page = resp.NextPage
-	}
-
-	return discussions
 }
 
 // openDiscussionsCount returns the number of open discussions.
@@ -221,32 +129,6 @@ func filterOpenDiscussions(mergeRequests []*gitlab.MergeRequest, discussions []*
 		}
 	}
 	return result
-}
-
-// loadEmojis returns all emoji reactions of the particular MR.
-func (cw *clientWrapper) loadEmojis(repo interface{}, mr *gitlab.MergeRequest) []*gitlab.AwardEmoji {
-
-	var (
-		emojis []*gitlab.AwardEmoji
-		opts   = &gitlab.ListAwardEmojiOptions{PerPage: 100}
-	)
-
-	for {
-		pageEmojis, resp, err := cw.original.AwardEmoji.ListMergeRequestAwardEmoji(repo, mr.IID, opts)
-		if err != nil {
-			log.Fatalf("failed to list emojis for MR %v: %v", mr.IID, err)
-		}
-		if resp.StatusCode != http.StatusOK {
-			log.Fatalf("failed to list emojis, status code: %v", resp.StatusCode)
-		}
-		emojis = append(emojis, pageEmojis...)
-		if resp.NextPage == 0 {
-			break
-		}
-		opts.Page = resp.NextPage
-	}
-
-	return emojis
 }
 
 const (

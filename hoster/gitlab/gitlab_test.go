@@ -10,13 +10,14 @@ import (
 )
 
 func TestAggregateReminder(t *testing.T) {
-	mockedClient := &clientMock{
-		projectInfoFunc: func(repo interface{}) gitlab.Project {
+	mockedClient := &clientWrapperMock{
+		loadProjectFunc: func(repo interface{}) gitlab.Project {
 			return gitlab.Project{Name: "mocked project"}
 		},
-		openMergeRequestsFunc: func(repo interface{}) []*gitlab.MergeRequest {
+		loadMRsFunc: func(repo interface{}) []*gitlab.MergeRequest {
 			return []*gitlab.MergeRequest{
 				{Title: "MR0"},
+				{Title: "MR1", WorkInProgress: true},
 			}
 		},
 		loadEmojisFunc: func(repo interface{}, mr *gitlab.MergeRequest) []*gitlab.AwardEmoji {
