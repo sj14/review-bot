@@ -1,7 +1,6 @@
 package gitlab
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -22,7 +21,7 @@ func TestAggregateReminder(t *testing.T) {
 		},
 		loadEmojisFunc: func(repo interface{}, mr *gitlab.MergeRequest) []*gitlab.AwardEmoji {
 			return []*gitlab.AwardEmoji{
-				{Name: ":thumbsup:"},
+				{Name: thumbsup},
 			}
 		},
 		loadDiscussionsFunc: func(repo interface{}, mr *gitlab.MergeRequest) []*gitlab.Discussion {
@@ -37,7 +36,7 @@ func TestAggregateReminder(t *testing.T) {
 	}
 
 	expR := []reminder{
-		{MR: &gitlab.MergeRequest{Title: "MR0"}, Missing: []string{"Spidy"}, Emojis: map[string]int{":thumbsup:": 1}, Discussions: 1},
+		{MR: &gitlab.MergeRequest{Title: "MR0"}, Missing: []string{"Spidy"}, Emojis: map[string]int{"thumbsup": 1}, Discussions: 1},
 	}
 
 	gotP, gotR := aggregate(mockedClient, 2009901, map[string]string{"42": "Spidy"})
@@ -117,9 +116,7 @@ func TestMissingReviewers(t *testing.T) {
 	got := missingReviewers(reviewedBy, approvers)
 
 	want := []string{"@user0", "@user3"}
-
-	// maps are not ordered, except you print them
-	require.Equal(t, fmt.Sprint(want), fmt.Sprint(got))
+	require.ElementsMatch(t, want, got)
 }
 
 func TestAggregateEmojis(t *testing.T) {
