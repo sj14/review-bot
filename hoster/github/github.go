@@ -53,7 +53,7 @@ func getReviwed(pr *github.PullRequest, reviews []*github.PullRequestReview) []s
 		}
 
 		if rev.GetState() == "APPROVED" || rev.GetState() == "DISMISSED" {
-			reviewedBy = append(reviewedBy, rev.GetUser().GetLogin()) // TODO: fix casting to int
+			reviewedBy = append(reviewedBy, rev.GetUser().GetLogin())
 		}
 	}
 	return reviewedBy
@@ -104,9 +104,12 @@ func missingReviewers(requested []*github.User, reviewedBy []string, mapping map
 				missing = append(missing, userName)
 				added = true
 			}
+			// we found the requested user/mapping,
+			// don't check further mappings for this user
+			break
 		}
-		// missing mapping
-		if !added {
+		// missing chat name mapping, use github login as fallback
+		if !approved && !added {
 			missing = append(missing, requested.GetLogin())
 		}
 	}
