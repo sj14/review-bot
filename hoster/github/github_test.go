@@ -53,3 +53,27 @@ func TestIsRequestedReviewer(t *testing.T) {
 		require.Equal(t, false, got)
 	})
 }
+
+func TestResponsiblePerson(t *testing.T) {
+	reviewers := map[string]string{
+		"user0": "@user0",
+		"user1": "@user1",
+		"user2": "@user2",
+		"user3": "@user3",
+	}
+
+	t.Run("mapping", func(t *testing.T) {
+		pr := &github.PullRequest{User: &github.User{
+			Login: stringp("user2"),
+		}}
+		got := responsiblePerson(pr, reviewers)
+		require.Equal(t, "@user2", got)
+	})
+	t.Run("fallback", func(t *testing.T) {
+		pr := &github.PullRequest{User: &github.User{
+			Login: stringp("unkown"),
+		}}
+		got := responsiblePerson(pr, reviewers)
+		require.Equal(t, "unkown", got)
+	})
+}
