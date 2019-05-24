@@ -33,3 +33,23 @@ func TestMissingReviewers(t *testing.T) {
 	want := []string{"@user0", "user3"}
 	require.ElementsMatch(t, want, got)
 }
+
+func TestIsRequestedReviewer(t *testing.T) {
+	reviewers := []*github.User{
+		{Login: stringp("user0")},
+		{Login: stringp("user1")},
+		{Login: stringp("user2")},
+		{Login: stringp("user3")},
+	}
+
+	t.Run("mapping", func(t *testing.T) {
+		requested := &github.User{Login: stringp("user2")}
+		got := isRequestedReviewer(reviewers, requested)
+		require.Equal(t, true, got)
+	})
+	t.Run("fallback", func(t *testing.T) {
+		requested := &github.User{Login: stringp("unknown")}
+		got := isRequestedReviewer(reviewers, requested)
+		require.Equal(t, false, got)
+	})
+}
