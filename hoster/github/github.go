@@ -30,7 +30,7 @@ func AggregateReminder(token, owner, repo string, reviewers map[string]string, t
 
 		reviews := git.loadReviews(owner, repo, pr.GetNumber())
 
-		reviewedBy := getReviwed(pr, reviews)
+		reviewedBy := getReviewed(pr, reviews)
 
 		missing := missingReviewers(pr.RequestedReviewers, reviewedBy, reviewers)
 
@@ -45,14 +45,15 @@ func AggregateReminder(token, owner, repo string, reviewers map[string]string, t
 	return execTemplate(template, repository, reminders)
 }
 
-func getReviwed(pr *github.PullRequest, reviews []*github.PullRequestReview) []string {
+const (
+	approved  = "APPROVED"
+	dismissed = "DISMISSED"
+)
+
+func getReviewed(pr *github.PullRequest, reviews []*github.PullRequestReview) []string {
 	var reviewedBy []string
 	for _, rev := range reviews {
-		if ok := isRequestedReviewer(pr.RequestedReviewers, rev.GetUser()); !ok {
-			continue
-		}
-
-		if rev.GetState() == "APPROVED" || rev.GetState() == "DISMISSED" {
+		if rev.GetState() == approved || rev.GetState() == dismissed {
 			reviewedBy = append(reviewedBy, rev.GetUser().GetLogin())
 		}
 	}
