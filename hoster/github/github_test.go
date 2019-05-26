@@ -11,6 +11,26 @@ func stringp(s string) *string {
 	return &s
 }
 
+func TestGetReviewed(t *testing.T) {
+	pr := &github.PullRequest{User: &github.User{Login: stringp("owner")},
+		RequestedReviewers: []*github.User{
+			{Login: stringp("reviewer0")},
+			{Login: stringp("reviewer1")},
+			{Login: stringp("reviewer2")},
+		}}
+
+	reviews := []*github.PullRequestReview{
+		{User: &github.User{Login: stringp("reviewer0")}, State: stringp(approved)},
+		{User: &github.User{Login: stringp("reviewer1")}, State: stringp(dismissed)},
+		{User: &github.User{Login: stringp("reviewer2")}},                           // requested but missing
+		{User: &github.User{Login: stringp("reviewer3")}, State: stringp(approved)}, // not requested
+	}
+
+	want := []string{"reviewer0", "reviewer1", "reviewer3"}
+	got := getReviewed(pr, reviews)
+	require.Equal(t, want, got)
+}
+
 func TestMissingReviewers(t *testing.T) {
 	requested := []*github.User{
 		{Login: stringp("user0")},
