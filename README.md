@@ -10,7 +10,7 @@ This tool is still **beta**. The usage with Gitlab and Mattermost is more mature
 ## Installation
 
 ```text
-go install github.com/sj14/review-bot
+go get -u github.com/sj14/review-bot
 ```
 
 ## Example
