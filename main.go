@@ -62,7 +62,9 @@ func main() {
 	fmt.Println(reminder)
 
 	if *webhook != "" {
-		slackermost.Send(*channel, reminder, *webhook)
+		if err := slackermost.Send(*channel, reminder, *webhook); err != nil {
+			log.Fatalf("failed sending slackermost message: %v", err)
+		}
 	}
 }
 
