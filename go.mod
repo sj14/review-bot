@@ -7,3 +7,5 @@ require (
 	golang.org/x/oauth2 v0.0.0-20181106182150-f42d05182288
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58 // indirect
 )
+
+go 1.13

@@ -1,8 +1,6 @@
 package github
 
 import (
-	"text/template"
-
 	"github.com/google/go-github/v25/github"
 )
 
@@ -15,7 +13,7 @@ type reminder struct {
 }
 
 // AggregateReminder will generate the reminder message.
-func AggregateReminder(token, owner, repo string, reviewers map[string]string, template *template.Template) string {
+func AggregateReminder(token, owner, repo string, reviewers map[string]string) (*github.Repository, []reminder) {
 	var (
 		reminders    []reminder
 		git          = newClient(token)
@@ -42,7 +40,7 @@ func AggregateReminder(token, owner, repo string, reviewers map[string]string, t
 		// TODO: reactions/emojis
 		reminders = append(reminders, reminder{pr, missing, pr.GetComments(), owner, nil})
 	}
-	return execTemplate(template, repository, reminders)
+	return repository, reminders
 }
 
 const (

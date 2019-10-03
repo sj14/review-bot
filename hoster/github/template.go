@@ -26,7 +26,7 @@ func DefaultTemplate() *template.Template {
 }
 
 // Exec the reminder message for the given merge request.
-func execTemplate(template *template.Template, repository *github.Repository, reminders []reminder) string {
+func ExecTemplate(template *template.Template, repository *github.Repository, reminders []reminder) string {
 	data := struct {
 		Repository *github.Repository
 		Reminders  []reminder

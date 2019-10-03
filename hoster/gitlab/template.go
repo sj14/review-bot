@@ -25,8 +25,8 @@ func DefaultTemplate() *template.Template {
 	return template.Must(template.New("default").Parse(defaultTemplate))
 }
 
-// Exec the reminder message for the given merge request.
-func execTemplate(template *template.Template, project gitlab.Project, reminders []reminder) string {
+// ExecTemplate execs the reminder message for the given merge requests.
+func ExecTemplate(template *template.Template, project gitlab.Project, reminders []reminder) string {
 	data := struct {
 		Project   gitlab.Project
 		Reminders []reminder

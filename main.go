@@ -22,7 +22,7 @@ func main() {
 		reviewersPath = flag.String("reviewers", "examples/reviewers.json", "path to the reviewers file")
 		templatePath  = flag.String("template", "", "path to the template file")
 		webhook       = flag.String("webhook", "", "slack/mattermost webhook URL")
-		channel       = flag.String("channel", "", "mattermost channel (e.g. MyChannel) or user (e.g. @AnyUser)")
+		channelOrUser = flag.String("channel", "", "mattermost channel (e.g. MyChannel) or user (e.g. @AnyUser)")
 	)
 	flag.Parse()
 
@@ -50,9 +50,20 @@ func main() {
 		if len(ownerRespo) != 2 {
 			log.Fatalln("wrong repo format (use 'owner/repo')")
 		}
-		reminder = github.AggregateReminder(*token, ownerRespo[0], ownerRespo[1], reviewers, tmpl)
+		repo, reminders := github.AggregateReminder(*token, ownerRespo[0], ownerRespo[1], reviewers)
+		if len(reminders) == 0 {
+			// prevent from sending the header only
+			return
+		}
+		reminder = github.ExecTemplate(tmpl, repo, reminders)
+
 	} else {
-		reminder = gitlab.AggregateReminder(*host, *token, *repo, reviewers, tmpl)
+		project, reminders := gitlab.AggregateReminder(*host, *token, *repo, reviewers)
+		if len(reminders) == 0 {
+			// prevent from sending the header only
+			return
+		}
+		reminder = gitlab.ExecTemplate(tmpl, project, reminders)
 	}
 
 	if reminder == "" {
@@ -62,7 +73,7 @@ func main() {
 	fmt.Println(reminder)
 
 	if *webhook != "" {
-		if err := slackermost.Send(*channel, reminder, *webhook); err != nil {
+		if err := slackermost.Send(*channelOrUser, reminder, *webhook); err != nil {
 			log.Fatalf("failed sending slackermost message: %v", err)
 		}
 	}

@@ -1,8 +1,6 @@
 package gitlab
 
 import (
-	"text/template"
-
 	"github.com/xanzy/go-gitlab"
 )
 
@@ -15,19 +13,33 @@ type reminder struct {
 }
 
 // AggregateReminder will generate the reminder message.
-func AggregateReminder(host, token string, repo interface{}, reviewers map[string]string, template *template.Template) string {
+func AggregateReminder(host, token string, repo interface{}, reviewers map[string]string) (gitlab.Project, []reminder) {
 	// setup gitlab client
 	git := newClient(host, token)
 
 	project, reminders := aggregate(git, repo, reviewers)
 
 	// prevent from sending the header only
-	if len(reminders) == 0 {
-		return ""
-	}
+	// if len(reminders) == 0 {
+	// 	return ""
+	// }
 
-	return execTemplate(template, project, reminders)
+	return project, reminders
 }
+
+// func AggregateUsersReminder(host, token string, repo interface{}, reviewers map[string]string, template *template.Template) string {
+// 	// setup gitlab client
+// 	git := newClient(host, token)
+
+// 	project, reminders := aggregate(git, repo, reviewers)
+
+// 	// prevent from sending the header only
+// 	if len(reminders) == 0 {
+// 		return ""
+// 	}
+
+// 	return ExecTemplate(template, project, reminders)
+// }
 
 // helper functions for easier testability (mocked gitlab client)
 func aggregate(git clientWrapper, repo interface{}, reviewers map[string]string) (gitlab.Project, []reminder) {
