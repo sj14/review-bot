@@ -1,5 +1,9 @@
 # Review Reminder Bot
 
+For an enhanced SaaS version, visit https://www.review-bot.com/
+
+---
+
 [![Build Status](https://dev.azure.com/SimonJuergensmeyer/SimonJuergensmeyer/_apis/build/status/sj14.review-bot?branchName=master)](https://dev.azure.com/SimonJuergensmeyer/SimonJuergensmeyer/_build/latest?definitionId=2&branchName=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/sj14/review-bot)](https://goreportcard.com/report/github.com/sj14/review-bot)
 
