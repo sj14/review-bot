@@ -2,31 +2,80 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 	"text/template"
 
 	"github.com/sj14/review-bot/hoster/github"
 	"github.com/sj14/review-bot/hoster/gitlab"
 	"github.com/sj14/review-bot/slackermost"
+	"github.com/spf13/pflag"
 )
 
 func main() {
 	var (
-		host          = flag.String("host", "", "host address (e.g. github.com, gitlab.com or self-hosted gitlab url)")
-		token         = flag.String("token", "", "host API token")
-		repo          = flag.String("repo", "", "repository (format: 'owner/repo'), or project id (only gitlab)")
-		reviewersPath = flag.String("reviewers", "examples/reviewers.json", "path to the reviewers file")
-		templatePath  = flag.String("template", "", "path to the template file")
-		webhook       = flag.String("webhook", "", "slack/mattermost webhook URL")
-		channelOrUser = flag.String("channel", "", "mattermost channel (e.g. MyChannel) or user (e.g. @AnyUser)")
-	)
-	flag.Parse()
+		// Repository flags, available for all subcommands.
+		repoFlags     = pflag.NewFlagSet("repo", pflag.ExitOnError)
+		githost       = repoFlags.String("host", "", "host address (e.g. github.com, gitlab.com or self-hosted gitlab url)")
+		token         = repoFlags.String("token", "", "host API token")
+		repo          = repoFlags.String("repo", "", "repository (format: 'owner/repo'), or project id (only gitlab)")
+		reviewersPath = repoFlags.String("reviewers", "examples/reviewers.json", "path to the reviewers file")
+		templatePath  = repoFlags.String("template", "", "path to the template file")
 
-	if *host == "" {
+		// Slack/Mattermost flags
+		slackermostFlags = pflag.NewFlagSet("slackermost", pflag.ExitOnError)
+		webhook          = slackermostFlags.String("webhook", "", "slack/mattermost webhook URL")
+		channelOrUser    = slackermostFlags.String("channel", "", "mattermost channel (e.g. MyChannel) or user (e.g. @AnyUser)")
+
+		// E-Mail flags
+		mailFlags = pflag.NewFlagSet("mail", pflag.ExitOnError)
+		// mailhost  = mailFlags.String("mailhost", "", "...")
+		// user      = mailFlags.String("user", "", "...")
+		// pass      = mailFlags.String("pass", "", "...")
+	)
+
+	repoFlags.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Available subcommands:\n\tslackermost | mail\n")
+		fmt.Fprintf(os.Stderr, "\tUse 'subcommand --help' for all flags of the specified command.\n")
+		fmt.Fprintf(os.Stderr, "Generic flags for all subcommands:\n")
+		repoFlags.PrintDefaults()
+	}
+
+	log.Printf("got arg: %v", os.Args[1])
+
+	switch os.Args[1] {
+	case "slackermost":
+		slackermostFlags.AddFlagSet(repoFlags)
+		if err := slackermostFlags.Parse(os.Args[2:]); err != nil {
+			log.Fatalf("failed to parse slackermost flags: %v", err)
+		}
+		log.Println("called slackermost subcommand")
+	case "mail":
+		mailFlags.AddFlagSet(repoFlags)
+		if err := mailFlags.Parse(os.Args[2:]); err != nil {
+			log.Fatalf("failed to parse mail flags: %v", err)
+		}
+		log.Println("called mail subcommand")
+	default:
+		if err := repoFlags.Parse(os.Args[1:]); err != nil {
+			log.Fatalf("failed to parse default flags: %v", err)
+		}
+
+		// Command not recognized. Print usage help and exit.
+		repoFlags.Usage()
+		os.Exit(1)
+	}
+
+	// No comamnd given. Print usage help and exit.
+	if len(os.Args) < 2 {
+		repoFlags.Usage()
+		os.Exit(1)
+	}
+
+	if *githost == "" {
 		log.Fatalln("missing host")
 	}
 	if *repo == "" {
@@ -38,14 +87,14 @@ func main() {
 	var tmpl *template.Template
 	if *templatePath != "" {
 		tmpl = loadTemplate(*templatePath)
-	} else if *host == "github.com" {
+	} else if *githost == "github.com" {
 		tmpl = github.DefaultTemplate()
 	} else {
 		tmpl = gitlab.DefaultTemplate()
 	}
 
 	var reminder string
-	if *host == "github.com" {
+	if *githost == "github.com" {
 		ownerRespo := strings.SplitN(*repo, "/", 2)
 		if len(ownerRespo) != 2 {
 			log.Fatalln("wrong repo format (use 'owner/repo')")
@@ -58,7 +107,7 @@ func main() {
 		reminder = github.ExecTemplate(tmpl, repo, reminders)
 
 	} else {
-		project, reminders := gitlab.AggregateReminder(*host, *token, *repo, reviewers)
+		project, reminders := gitlab.AggregateReminder(*githost, *token, *repo, reviewers)
 		if len(reminders) == 0 {
 			// prevent from sending the header only
 			return
