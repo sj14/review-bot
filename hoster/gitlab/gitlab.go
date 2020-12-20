@@ -91,10 +91,14 @@ func aggregate(git clientWrapper, repo interface{}, reviewers map[string]string)
 // responsiblePerson returns the mattermost name of the assignee or author of the MR
 // (fallback: gitlab author name)
 func responsiblePerson(mr *gitlab.MergeRequest, reviewers map[string]string) string {
-	if mr.Assignee.Username != "" {
+	if mr.Assignee != nil && mr.Assignee.Username != "" {
 		if assignee, ok := reviewers[mr.Assignee.Username]; ok {
 			return assignee
 		}
+	}
+
+	if mr.Author == nil {
+		return ""
 	}
 
 	if author, ok := reviewers[mr.Author.Username]; ok {
@@ -153,7 +157,11 @@ const (
 // The emojis "thumbsup" 👍 and "thumbsdown" 👎 signal the user reviewed the merge request and won't receive a reminder.
 // The emoji "sleeping" 😴 means the user won't review the code and/or doesn't want to be reminded.
 func getReviewed(mr *gitlab.MergeRequest, emojis []*gitlab.AwardEmoji) []string {
-	var reviewedBy = []string{mr.Author.Username}
+	var reviewedBy []string
+
+	if mr.Author != nil {
+		reviewedBy = append(reviewedBy, mr.Author.Username)
+	}
 
 	for _, emoji := range emojis {
 		if emoji.Name == thumbsup ||

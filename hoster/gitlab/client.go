@@ -22,10 +22,11 @@ type client struct {
 
 // newClient returns a new gitlab client.
 func newClient(host, token string) *client {
-	c := gitlab.NewClient(nil, token)
-	if err := c.SetBaseURL(fmt.Sprintf("https://%s/api/v4", host)); err != nil {
-		log.Fatalf("failed to set gitlab host: %v", err)
+	c, err := gitlab.NewClient(token, gitlab.WithBaseURL(fmt.Sprintf("https://%s/api/v4", host)))
+	if err != nil {
+		log.Fatalf("failed creating new giltab client: %v\n", err)
 	}
+
 	return &client{original: c}
 }
 
