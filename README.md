@@ -4,7 +4,7 @@ For an enhanced SaaS version, visit https://www.review-bot.com/
 
 ---
 
-![Action](https://github.com/sj14/dbbench/workflows/Go/badge.svg)
+![Action](https://github.com/sj14/review-bot/workflows/Go/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/sj14/review-bot)](https://goreportcard.com/report/github.com/sj14/review-bot)
 
 `review-bot` sends a reminder message to Mattermost or Slack with all open pull/merge requests which need an approval. Well suitable for running as a cron-job, e.g. for daily reminders.
