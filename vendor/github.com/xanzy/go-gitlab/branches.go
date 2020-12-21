@@ -37,8 +37,11 @@ type Branch struct {
 	Name               string  `json:"name"`
 	Protected          bool    `json:"protected"`
 	Merged             bool    `json:"merged"`
+	Default            bool    `json:"default"`
+	CanPush            bool    `json:"can_push"`
 	DevelopersCanPush  bool    `json:"developers_can_push"`
 	DevelopersCanMerge bool    `json:"developers_can_merge"`
+	WebURL             string  `json:"web_url"`
 }
 
 func (b Branch) String() string {
@@ -49,19 +52,22 @@ func (b Branch) String() string {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/branches.html#list-repository-branches
-type ListBranchesOptions ListOptions
+type ListBranchesOptions struct {
+	ListOptions
+	Search *string `url:"search,omitempty" json:"search,omitempty"`
+}
 
 // ListBranches gets a list of repository branches from a project, sorted by
 // name alphabetically.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/branches.html#list-repository-branches
-func (s *BranchesService) ListBranches(pid interface{}, opts *ListBranchesOptions, options ...OptionFunc) ([]*Branch, *Response, error) {
+func (s *BranchesService) ListBranches(pid interface{}, opts *ListBranchesOptions, options ...RequestOptionFunc) ([]*Branch, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/repository/branches", url.QueryEscape(project))
+	u := fmt.Sprintf("projects/%s/repository/branches", pathEscape(project))
 
 	req, err := s.client.NewRequest("GET", u, opts, options)
 	if err != nil {
@@ -81,12 +87,12 @@ func (s *BranchesService) ListBranches(pid interface{}, opts *ListBranchesOption
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/branches.html#get-single-repository-branch
-func (s *BranchesService) GetBranch(pid interface{}, branch string, options ...OptionFunc) (*Branch, *Response, error) {
+func (s *BranchesService) GetBranch(pid interface{}, branch string, options ...RequestOptionFunc) (*Branch, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/repository/branches/%s", url.QueryEscape(project), url.QueryEscape(branch))
+	u := fmt.Sprintf("projects/%s/repository/branches/%s", pathEscape(project), url.PathEscape(branch))
 
 	req, err := s.client.NewRequest("GET", u, nil, options)
 	if err != nil {
@@ -117,12 +123,12 @@ type ProtectBranchOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/branches.html#protect-repository-branch
-func (s *BranchesService) ProtectBranch(pid interface{}, branch string, opts *ProtectBranchOptions, options ...OptionFunc) (*Branch, *Response, error) {
+func (s *BranchesService) ProtectBranch(pid interface{}, branch string, opts *ProtectBranchOptions, options ...RequestOptionFunc) (*Branch, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/repository/branches/%s/protect", url.QueryEscape(project), url.QueryEscape(branch))
+	u := fmt.Sprintf("projects/%s/repository/branches/%s/protect", pathEscape(project), url.PathEscape(branch))
 
 	req, err := s.client.NewRequest("PUT", u, opts, options)
 	if err != nil {
@@ -144,12 +150,12 @@ func (s *BranchesService) ProtectBranch(pid interface{}, branch string, opts *Pr
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/branches.html#unprotect-repository-branch
-func (s *BranchesService) UnprotectBranch(pid interface{}, branch string, options ...OptionFunc) (*Branch, *Response, error) {
+func (s *BranchesService) UnprotectBranch(pid interface{}, branch string, options ...RequestOptionFunc) (*Branch, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/repository/branches/%s/unprotect", url.QueryEscape(project), url.QueryEscape(branch))
+	u := fmt.Sprintf("projects/%s/repository/branches/%s/unprotect", pathEscape(project), url.PathEscape(branch))
 
 	req, err := s.client.NewRequest("PUT", u, nil, options)
 	if err != nil {
@@ -178,12 +184,12 @@ type CreateBranchOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/branches.html#create-repository-branch
-func (s *BranchesService) CreateBranch(pid interface{}, opt *CreateBranchOptions, options ...OptionFunc) (*Branch, *Response, error) {
+func (s *BranchesService) CreateBranch(pid interface{}, opt *CreateBranchOptions, options ...RequestOptionFunc) (*Branch, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/repository/branches", url.QueryEscape(project))
+	u := fmt.Sprintf("projects/%s/repository/branches", pathEscape(project))
 
 	req, err := s.client.NewRequest("POST", u, opt, options)
 	if err != nil {
@@ -203,12 +209,12 @@ func (s *BranchesService) CreateBranch(pid interface{}, opt *CreateBranchOptions
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/branches.html#delete-repository-branch
-func (s *BranchesService) DeleteBranch(pid interface{}, branch string, options ...OptionFunc) (*Response, error) {
+func (s *BranchesService) DeleteBranch(pid interface{}, branch string, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/repository/branches/%s", url.QueryEscape(project), url.QueryEscape(branch))
+	u := fmt.Sprintf("projects/%s/repository/branches/%s", pathEscape(project), url.PathEscape(branch))
 
 	req, err := s.client.NewRequest("DELETE", u, nil, options)
 	if err != nil {
@@ -222,12 +228,12 @@ func (s *BranchesService) DeleteBranch(pid interface{}, branch string, options .
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/branches.html#delete-merged-branches
-func (s *BranchesService) DeleteMergedBranches(pid interface{}, options ...OptionFunc) (*Response, error) {
+func (s *BranchesService) DeleteMergedBranches(pid interface{}, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/repository/merged_branches", url.QueryEscape(project))
+	u := fmt.Sprintf("projects/%s/repository/merged_branches", pathEscape(project))
 
 	req, err := s.client.NewRequest("DELETE", u, nil, options)
 	if err != nil {

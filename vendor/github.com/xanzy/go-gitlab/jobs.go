@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"net/url"
 	"time"
 )
 
@@ -36,36 +35,90 @@ type JobsService struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/jobs.html
 type Job struct {
-	Commit        *Commit    `json:"commit"`
-	CreatedAt     *time.Time `json:"created_at"`
-	Coverage      float64    `json:"coverage"`
+	Commit            *Commit    `json:"commit"`
+	Coverage          float64    `json:"coverage"`
+	AllowFailure      bool       `json:"allow_failure"`
+	CreatedAt         *time.Time `json:"created_at"`
+	StartedAt         *time.Time `json:"started_at"`
+	FinishedAt        *time.Time `json:"finished_at"`
+	Duration          float64    `json:"duration"`
+	ArtifactsExpireAt *time.Time `json:"artifacts_expire_at"`
+	ID                int        `json:"id"`
+	Name              string     `json:"name"`
+	Pipeline          struct {
+		ID     int    `json:"id"`
+		Ref    string `json:"ref"`
+		Sha    string `json:"sha"`
+		Status string `json:"status"`
+	} `json:"pipeline"`
+	Ref       string `json:"ref"`
+	Artifacts []struct {
+		FileType   string `json:"file_type"`
+		Filename   string `json:"filename"`
+		Size       int    `json:"size"`
+		FileFormat string `json:"file_format"`
+	} `json:"artifacts"`
 	ArtifactsFile struct {
 		Filename string `json:"filename"`
 		Size     int    `json:"size"`
 	} `json:"artifacts_file"`
-	FinishedAt *time.Time `json:"finished_at"`
-	ID         int        `json:"id"`
-	Name       string     `json:"name"`
-	Ref        string     `json:"ref"`
-	Runner     struct {
+	Runner struct {
 		ID          int    `json:"id"`
 		Description string `json:"description"`
 		Active      bool   `json:"active"`
 		IsShared    bool   `json:"is_shared"`
 		Name        string `json:"name"`
 	} `json:"runner"`
-	Stage     string     `json:"stage"`
-	StartedAt *time.Time `json:"started_at"`
-	Status    string     `json:"status"`
-	Tag       bool       `json:"tag"`
-	User      *User      `json:"user"`
-	WebURL    string     `json:"web_url"`
+	Stage  string `json:"stage"`
+	Status string `json:"status"`
+	Tag    bool   `json:"tag"`
+	WebURL string `json:"web_url"`
+	User   *User  `json:"user"`
+}
+
+// Bridge represents a pipeline bridge.
+//
+// GitLab API docs: https://docs.gitlab.com/ce/api/jobs.html#list-pipeline-bridges
+type Bridge struct {
+	Commit       *Commit    `json:"commit"`
+	Coverage     float64    `json:"coverage"`
+	AllowFailure bool       `json:"allow_failure"`
+	CreatedAt    *time.Time `json:"created_at"`
+	StartedAt    *time.Time `json:"started_at"`
+	FinishedAt   *time.Time `json:"finished_at"`
+	Duration     float64    `json:"duration"`
+	ID           int        `json:"id"`
+	Name         string     `json:"name"`
+	Pipeline     struct {
+		ID        int        `json:"id"`
+		Ref       string     `json:"ref"`
+		Sha       string     `json:"sha"`
+		Status    string     `json:"status"`
+		CreatedAt *time.Time `json:"created_at"`
+		UpdateAt  *time.Time `json:"updated_at"`
+		WebURL    string     `json:"web_url"`
+	} `json:"pipeline"`
+	Ref                string `json:"ref"`
+	Stage              string `json:"stage"`
+	Status             string `json:"status"`
+	Tag                bool   `json:"tag"`
+	WebURL             string `json:"web_url"`
+	User               *User  `json:"user"`
+	DownstreamPipeline struct {
+		ID        int        `json:"id"`
+		Sha       string     `json:"sha"`
+		Ref       string     `json:"ref"`
+		Status    string     `json:"status"`
+		CreatedAt *time.Time `json:"created_at"`
+		UpdateAt  *time.Time `json:"updated_at"`
+		WebURL    string     `json:"web_url"`
+	} `json:"downstream_pipeline"`
 }
 
 // ListJobsOptions are options for two list apis
 type ListJobsOptions struct {
 	ListOptions
-	Scope []BuildStateValue `url:"scope,omitempty" json:"scope,omitempty"`
+	Scope []BuildStateValue `url:"scope[],omitempty" json:"scope,omitempty"`
 }
 
 // ListProjectJobs gets a list of jobs in a project.
@@ -75,38 +128,12 @@ type ListJobsOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/jobs.html#list-project-jobs
-func (s *JobsService) ListProjectJobs(pid interface{}, opts *ListJobsOptions, options ...OptionFunc) ([]Job, *Response, error) {
+func (s *JobsService) ListProjectJobs(pid interface{}, opts *ListJobsOptions, options ...RequestOptionFunc) ([]*Job, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/jobs", url.QueryEscape(project))
-
-	req, err := s.client.NewRequest("GET", u, opts, options)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var jobs []Job
-	resp, err := s.client.Do(req, &jobs)
-	if err != nil {
-		return nil, resp, err
-	}
-
-	return jobs, resp, err
-}
-
-// ListPipelineJobs gets a list of jobs for specific pipeline in a
-// project. If the pipeline ID is not found, it will respond with 404.
-//
-// GitLab API docs:
-// https://docs.gitlab.com/ce/api/jobs.html#list-pipeline-jobs
-func (s *JobsService) ListPipelineJobs(pid interface{}, pipelineID int, opts *ListJobsOptions, options ...OptionFunc) ([]*Job, *Response, error) {
-	project, err := parseID(pid)
-	if err != nil {
-		return nil, nil, err
-	}
-	u := fmt.Sprintf("projects/%s/pipelines/%d/jobs", url.QueryEscape(project), pipelineID)
+	u := fmt.Sprintf("projects/%s/jobs", pathEscape(project))
 
 	req, err := s.client.NewRequest("GET", u, opts, options)
 	if err != nil {
@@ -122,16 +149,68 @@ func (s *JobsService) ListPipelineJobs(pid interface{}, pipelineID int, opts *Li
 	return jobs, resp, err
 }
 
-// GetJob gets a single job of a project.
+// ListPipelineJobs gets a list of jobs for specific pipeline in a
+// project. If the pipeline ID is not found, it will respond with 404.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/jobs.html#get-a-single-job
-func (s *JobsService) GetJob(pid interface{}, jobID int, options ...OptionFunc) (*Job, *Response, error) {
+// https://docs.gitlab.com/ce/api/jobs.html#list-pipeline-jobs
+func (s *JobsService) ListPipelineJobs(pid interface{}, pipelineID int, opts *ListJobsOptions, options ...RequestOptionFunc) ([]*Job, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/jobs/%d", url.QueryEscape(project), jobID)
+	u := fmt.Sprintf("projects/%s/pipelines/%d/jobs", pathEscape(project), pipelineID)
+
+	req, err := s.client.NewRequest("GET", u, opts, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var jobs []*Job
+	resp, err := s.client.Do(req, &jobs)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return jobs, resp, err
+}
+
+// ListPipelineBridges gets a list of bridges for specific pipeline in a
+// project.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/jobs.html#list-pipeline-jobs
+func (s *JobsService) ListPipelineBridges(pid interface{}, pipelineID int, opts *ListJobsOptions, options ...RequestOptionFunc) ([]*Bridge, *Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("projects/%s/pipelines/%d/bridges", pathEscape(project), pipelineID)
+
+	req, err := s.client.NewRequest("GET", u, opts, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var bridges []*Bridge
+	resp, err := s.client.Do(req, &bridges)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return bridges, resp, err
+}
+
+// GetJob gets a single job of a project.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/jobs.html#get-a-single-job
+func (s *JobsService) GetJob(pid interface{}, jobID int, options ...RequestOptionFunc) (*Job, *Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("projects/%s/jobs/%d", pathEscape(project), jobID)
 
 	req, err := s.client.NewRequest("GET", u, nil, options)
 	if err != nil {
@@ -150,13 +229,13 @@ func (s *JobsService) GetJob(pid interface{}, jobID int, options ...OptionFunc) 
 // GetJobArtifacts get jobs artifacts of a project
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/jobs.html#get-job-artifacts
-func (s *JobsService) GetJobArtifacts(pid interface{}, jobID int, options ...OptionFunc) (io.Reader, *Response, error) {
+// https://docs.gitlab.com/ce/api/job_artifacts.html#get-job-artifacts
+func (s *JobsService) GetJobArtifacts(pid interface{}, jobID int, options ...RequestOptionFunc) (io.Reader, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/jobs/%d/artifacts", url.QueryEscape(project), jobID)
+	u := fmt.Sprintf("projects/%s/jobs/%d/artifacts", pathEscape(project), jobID)
 
 	req, err := s.client.NewRequest("GET", u, nil, options)
 	if err != nil {
@@ -172,19 +251,28 @@ func (s *JobsService) GetJobArtifacts(pid interface{}, jobID int, options ...Opt
 	return artifactsBuf, resp, err
 }
 
+// DownloadArtifactsFileOptions represents the available DownloadArtifactsFile()
+// options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/job_artifacts.html#download-the-artifacts-archive
+type DownloadArtifactsFileOptions struct {
+	Job *string `url:"job" json:"job"`
+}
+
 // DownloadArtifactsFile download the artifacts file from the given
 // reference name and job provided the job finished successfully.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/jobs.html#download-the-artifacts-file
-func (s *JobsService) DownloadArtifactsFile(pid interface{}, refName string, job string, options ...OptionFunc) (io.Reader, *Response, error) {
+// https://docs.gitlab.com/ce/api/job_artifacts.html#download-the-artifacts-archive
+func (s *JobsService) DownloadArtifactsFile(pid interface{}, refName string, opt *DownloadArtifactsFileOptions, options ...RequestOptionFunc) (io.Reader, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/jobs/artifacts/%s/download?job=%s", url.QueryEscape(project), refName, job)
+	u := fmt.Sprintf("projects/%s/jobs/artifacts/%s/download", pathEscape(project), refName)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest("GET", u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -204,8 +292,8 @@ func (s *JobsService) DownloadArtifactsFile(pid interface{}, refName string, job
 // to a client.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/jobs.html#download-a-single-artifact-file
-func (s *JobsService) DownloadSingleArtifactsFile(pid interface{}, jobID int, artifactPath string, options ...OptionFunc) (io.Reader, *Response, error) {
+// https://docs.gitlab.com/ce/api/job_artifacts.html#download-a-single-artifact-file-by-job-id
+func (s *JobsService) DownloadSingleArtifactsFile(pid interface{}, jobID int, artifactPath string, options ...RequestOptionFunc) (io.Reader, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -213,7 +301,7 @@ func (s *JobsService) DownloadSingleArtifactsFile(pid interface{}, jobID int, ar
 
 	u := fmt.Sprintf(
 		"projects/%s/jobs/%d/artifacts/%s",
-		url.QueryEscape(project),
+		pathEscape(project),
 		jobID,
 		artifactPath,
 	)
@@ -236,12 +324,12 @@ func (s *JobsService) DownloadSingleArtifactsFile(pid interface{}, jobID int, ar
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/jobs.html#get-a-trace-file
-func (s *JobsService) GetTraceFile(pid interface{}, jobID int, options ...OptionFunc) (io.Reader, *Response, error) {
+func (s *JobsService) GetTraceFile(pid interface{}, jobID int, options ...RequestOptionFunc) (io.Reader, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/jobs/%d/trace", url.QueryEscape(project), jobID)
+	u := fmt.Sprintf("projects/%s/jobs/%d/trace", pathEscape(project), jobID)
 
 	req, err := s.client.NewRequest("GET", u, nil, options)
 	if err != nil {
@@ -261,12 +349,12 @@ func (s *JobsService) GetTraceFile(pid interface{}, jobID int, options ...Option
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/jobs.html#cancel-a-job
-func (s *JobsService) CancelJob(pid interface{}, jobID int, options ...OptionFunc) (*Job, *Response, error) {
+func (s *JobsService) CancelJob(pid interface{}, jobID int, options ...RequestOptionFunc) (*Job, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/jobs/%d/cancel", url.QueryEscape(project), jobID)
+	u := fmt.Sprintf("projects/%s/jobs/%d/cancel", pathEscape(project), jobID)
 
 	req, err := s.client.NewRequest("POST", u, nil, options)
 	if err != nil {
@@ -286,12 +374,12 @@ func (s *JobsService) CancelJob(pid interface{}, jobID int, options ...OptionFun
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/jobs.html#retry-a-job
-func (s *JobsService) RetryJob(pid interface{}, jobID int, options ...OptionFunc) (*Job, *Response, error) {
+func (s *JobsService) RetryJob(pid interface{}, jobID int, options ...RequestOptionFunc) (*Job, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/jobs/%d/retry", url.QueryEscape(project), jobID)
+	u := fmt.Sprintf("projects/%s/jobs/%d/retry", pathEscape(project), jobID)
 
 	req, err := s.client.NewRequest("POST", u, nil, options)
 	if err != nil {
@@ -312,12 +400,12 @@ func (s *JobsService) RetryJob(pid interface{}, jobID int, options ...OptionFunc
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/jobs.html#erase-a-job
-func (s *JobsService) EraseJob(pid interface{}, jobID int, options ...OptionFunc) (*Job, *Response, error) {
+func (s *JobsService) EraseJob(pid interface{}, jobID int, options ...RequestOptionFunc) (*Job, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/jobs/%d/erase", url.QueryEscape(project), jobID)
+	u := fmt.Sprintf("projects/%s/jobs/%d/erase", pathEscape(project), jobID)
 
 	req, err := s.client.NewRequest("POST", u, nil, options)
 	if err != nil {
@@ -337,13 +425,13 @@ func (s *JobsService) EraseJob(pid interface{}, jobID int, options ...OptionFunc
 // expiration is set.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/jobs.html#keep-artifacts
-func (s *JobsService) KeepArtifacts(pid interface{}, jobID int, options ...OptionFunc) (*Job, *Response, error) {
+// https://docs.gitlab.com/ce/api/job_artifacts.html#keep-artifacts
+func (s *JobsService) KeepArtifacts(pid interface{}, jobID int, options ...RequestOptionFunc) (*Job, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/jobs/%d/artifacts/keep", url.QueryEscape(project), jobID)
+	u := fmt.Sprintf("projects/%s/jobs/%d/artifacts/keep", pathEscape(project), jobID)
 
 	req, err := s.client.NewRequest("POST", u, nil, options)
 	if err != nil {
@@ -363,14 +451,39 @@ func (s *JobsService) KeepArtifacts(pid interface{}, jobID int, options ...Optio
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/jobs.html#play-a-job
-func (s *JobsService) PlayJob(pid interface{}, jobID int, options ...OptionFunc) (*Job, *Response, error) {
+func (s *JobsService) PlayJob(pid interface{}, jobID int, options ...RequestOptionFunc) (*Job, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/jobs/%d/play", url.QueryEscape(project), jobID)
+	u := fmt.Sprintf("projects/%s/jobs/%d/play", pathEscape(project), jobID)
 
 	req, err := s.client.NewRequest("POST", u, nil, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	job := new(Job)
+	resp, err := s.client.Do(req, job)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return job, resp, err
+}
+
+// DeleteArtifacts delete artifacts of a job
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/job_artifacts.html#delete-artifacts
+func (s *JobsService) DeleteArtifacts(pid interface{}, jobID int, options ...RequestOptionFunc) (*Job, *Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("projects/%s/jobs/%d/artifacts", pathEscape(project), jobID)
+
+	req, err := s.client.NewRequest("DELETE", u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}

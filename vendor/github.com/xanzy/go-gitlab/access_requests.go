@@ -2,7 +2,6 @@ package gitlab
 
 import (
 	"fmt"
-	"net/url"
 	"time"
 )
 
@@ -40,12 +39,12 @@ type ListAccessRequestsOptions ListOptions
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/access_requests.html#list-access-requests-for-a-group-or-project
-func (s *AccessRequestsService) ListProjectAccessRequests(pid interface{}, opt *ListAccessRequestsOptions, options ...OptionFunc) ([]*AccessRequest, *Response, error) {
+func (s *AccessRequestsService) ListProjectAccessRequests(pid interface{}, opt *ListAccessRequestsOptions, options ...RequestOptionFunc) ([]*AccessRequest, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/access_requests", url.QueryEscape(project))
+	u := fmt.Sprintf("projects/%s/access_requests", pathEscape(project))
 
 	req, err := s.client.NewRequest("GET", u, opt, options)
 	if err != nil {
@@ -66,12 +65,12 @@ func (s *AccessRequestsService) ListProjectAccessRequests(pid interface{}, opt *
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/access_requests.html#list-access-requests-for-a-group-or-project
-func (s *AccessRequestsService) ListGroupAccessRequests(gid interface{}, opt *ListAccessRequestsOptions, options ...OptionFunc) ([]*AccessRequest, *Response, error) {
+func (s *AccessRequestsService) ListGroupAccessRequests(gid interface{}, opt *ListAccessRequestsOptions, options ...RequestOptionFunc) ([]*AccessRequest, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("groups/%s/access_requests", url.QueryEscape(group))
+	u := fmt.Sprintf("groups/%s/access_requests", pathEscape(group))
 
 	req, err := s.client.NewRequest("GET", u, opt, options)
 	if err != nil {
@@ -92,12 +91,12 @@ func (s *AccessRequestsService) ListGroupAccessRequests(gid interface{}, opt *Li
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/access_requests.html#request-access-to-a-group-or-project
-func (s *AccessRequestsService) RequestProjectAccess(pid interface{}, options ...OptionFunc) (*AccessRequest, *Response, error) {
+func (s *AccessRequestsService) RequestProjectAccess(pid interface{}, options ...RequestOptionFunc) (*AccessRequest, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/access_requests", url.QueryEscape(project))
+	u := fmt.Sprintf("projects/%s/access_requests", pathEscape(project))
 
 	req, err := s.client.NewRequest("POST", u, nil, options)
 	if err != nil {
@@ -118,12 +117,12 @@ func (s *AccessRequestsService) RequestProjectAccess(pid interface{}, options ..
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/access_requests.html#request-access-to-a-group-or-project
-func (s *AccessRequestsService) RequestGroupAccess(gid interface{}, options ...OptionFunc) (*AccessRequest, *Response, error) {
+func (s *AccessRequestsService) RequestGroupAccess(gid interface{}, options ...RequestOptionFunc) (*AccessRequest, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("groups/%s/access_requests", url.QueryEscape(group))
+	u := fmt.Sprintf("groups/%s/access_requests", pathEscape(group))
 
 	req, err := s.client.NewRequest("POST", u, nil, options)
 	if err != nil {
@@ -152,12 +151,12 @@ type ApproveAccessRequestOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/access_requests.html#approve-an-access-request
-func (s *AccessRequestsService) ApproveProjectAccessRequest(pid interface{}, user int, opt *ApproveAccessRequestOptions, options ...OptionFunc) (*AccessRequest, *Response, error) {
+func (s *AccessRequestsService) ApproveProjectAccessRequest(pid interface{}, user int, opt *ApproveAccessRequestOptions, options ...RequestOptionFunc) (*AccessRequest, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/access_requests/%d/approve", url.QueryEscape(project), user)
+	u := fmt.Sprintf("projects/%s/access_requests/%d/approve", pathEscape(project), user)
 
 	req, err := s.client.NewRequest("PUT", u, opt, options)
 	if err != nil {
@@ -177,12 +176,12 @@ func (s *AccessRequestsService) ApproveProjectAccessRequest(pid interface{}, use
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/access_requests.html#approve-an-access-request
-func (s *AccessRequestsService) ApproveGroupAccessRequest(gid interface{}, user int, opt *ApproveAccessRequestOptions, options ...OptionFunc) (*AccessRequest, *Response, error) {
+func (s *AccessRequestsService) ApproveGroupAccessRequest(gid interface{}, user int, opt *ApproveAccessRequestOptions, options ...RequestOptionFunc) (*AccessRequest, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("groups/%s/access_requests/%d/approve", url.QueryEscape(group), user)
+	u := fmt.Sprintf("groups/%s/access_requests/%d/approve", pathEscape(group), user)
 
 	req, err := s.client.NewRequest("PUT", u, opt, options)
 	if err != nil {
@@ -202,12 +201,12 @@ func (s *AccessRequestsService) ApproveGroupAccessRequest(gid interface{}, user 
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/access_requests.html#deny-an-access-request
-func (s *AccessRequestsService) DenyProjectAccessRequest(pid interface{}, user int, options ...OptionFunc) (*Response, error) {
+func (s *AccessRequestsService) DenyProjectAccessRequest(pid interface{}, user int, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/access_requests/%d", url.QueryEscape(project), user)
+	u := fmt.Sprintf("projects/%s/access_requests/%d", pathEscape(project), user)
 
 	req, err := s.client.NewRequest("DELETE", u, nil, options)
 	if err != nil {
@@ -221,12 +220,12 @@ func (s *AccessRequestsService) DenyProjectAccessRequest(pid interface{}, user i
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/access_requests.html#deny-an-access-request
-func (s *AccessRequestsService) DenyGroupAccessRequest(gid interface{}, user int, options ...OptionFunc) (*Response, error) {
+func (s *AccessRequestsService) DenyGroupAccessRequest(gid interface{}, user int, options ...RequestOptionFunc) (*Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("groups/%s/access_requests/%d", url.QueryEscape(group), user)
+	u := fmt.Sprintf("groups/%s/access_requests/%d", pathEscape(group), user)
 
 	req, err := s.client.NewRequest("DELETE", u, nil, options)
 	if err != nil {
