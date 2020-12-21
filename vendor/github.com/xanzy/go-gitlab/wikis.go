@@ -66,12 +66,12 @@ type ListWikisOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/wikis.html#list-wiki-pages
-func (s *WikisService) ListWikis(pid interface{}, opt *ListWikisOptions, options ...OptionFunc) ([]*Wiki, *Response, error) {
+func (s *WikisService) ListWikis(pid interface{}, opt *ListWikisOptions, options ...RequestOptionFunc) ([]*Wiki, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/wikis", url.QueryEscape(project))
+	u := fmt.Sprintf("projects/%s/wikis", pathEscape(project))
 
 	req, err := s.client.NewRequest("GET", u, opt, options)
 	if err != nil {
@@ -91,12 +91,12 @@ func (s *WikisService) ListWikis(pid interface{}, opt *ListWikisOptions, options
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/wikis.html#get-a-wiki-page
-func (s *WikisService) GetWikiPage(pid interface{}, slug string, options ...OptionFunc) (*Wiki, *Response, error) {
+func (s *WikisService) GetWikiPage(pid interface{}, slug string, options ...RequestOptionFunc) (*Wiki, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/wikis/%s", url.QueryEscape(project), url.QueryEscape(slug))
+	u := fmt.Sprintf("projects/%s/wikis/%s", pathEscape(project), url.PathEscape(slug))
 
 	req, err := s.client.NewRequest("GET", u, nil, options)
 	if err != nil {
@@ -127,12 +127,12 @@ type CreateWikiPageOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/wikis.html#create-a-new-wiki-page
-func (s *WikisService) CreateWikiPage(pid interface{}, opt *CreateWikiPageOptions, options ...OptionFunc) (*Wiki, *Response, error) {
+func (s *WikisService) CreateWikiPage(pid interface{}, opt *CreateWikiPageOptions, options ...RequestOptionFunc) (*Wiki, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/wikis", url.QueryEscape(project))
+	u := fmt.Sprintf("projects/%s/wikis", pathEscape(project))
 
 	req, err := s.client.NewRequest("POST", u, opt, options)
 	if err != nil {
@@ -163,12 +163,12 @@ type EditWikiPageOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/wikis.html#edit-an-existing-wiki-page
-func (s *WikisService) EditWikiPage(pid interface{}, slug string, opt *EditWikiPageOptions, options ...OptionFunc) (*Wiki, *Response, error) {
+func (s *WikisService) EditWikiPage(pid interface{}, slug string, opt *EditWikiPageOptions, options ...RequestOptionFunc) (*Wiki, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/wikis/%s", url.QueryEscape(project), url.QueryEscape(slug))
+	u := fmt.Sprintf("projects/%s/wikis/%s", pathEscape(project), url.PathEscape(slug))
 
 	req, err := s.client.NewRequest("PUT", u, opt, options)
 	if err != nil {
@@ -188,12 +188,12 @@ func (s *WikisService) EditWikiPage(pid interface{}, slug string, opt *EditWikiP
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/wikis.html#delete-a-wiki-page
-func (s *WikisService) DeleteWikiPage(pid interface{}, slug string, options ...OptionFunc) (*Response, error) {
+func (s *WikisService) DeleteWikiPage(pid interface{}, slug string, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/wikis/%s", url.QueryEscape(project), url.QueryEscape(slug))
+	u := fmt.Sprintf("projects/%s/wikis/%s", pathEscape(project), url.PathEscape(slug))
 
 	req, err := s.client.NewRequest("DELETE", u, nil, options)
 	if err != nil {

@@ -2,7 +2,6 @@ package gitlab
 
 import (
 	"fmt"
-	"net/url"
 	"time"
 )
 
@@ -39,12 +38,12 @@ type ListPipelineTriggersOptions ListOptions
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/pipeline_triggers.html#list-project-triggers
-func (s *PipelineTriggersService) ListPipelineTriggers(pid interface{}, opt *ListPipelineTriggersOptions, options ...OptionFunc) ([]*PipelineTrigger, *Response, error) {
+func (s *PipelineTriggersService) ListPipelineTriggers(pid interface{}, opt *ListPipelineTriggersOptions, options ...RequestOptionFunc) ([]*PipelineTrigger, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/triggers", url.QueryEscape(project))
+	u := fmt.Sprintf("projects/%s/triggers", pathEscape(project))
 
 	req, err := s.client.NewRequest("GET", u, opt, options)
 	if err != nil {
@@ -64,12 +63,12 @@ func (s *PipelineTriggersService) ListPipelineTriggers(pid interface{}, opt *Lis
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/pipeline_triggers.html#get-trigger-details
-func (s *PipelineTriggersService) GetPipelineTrigger(pid interface{}, trigger int, options ...OptionFunc) (*PipelineTrigger, *Response, error) {
+func (s *PipelineTriggersService) GetPipelineTrigger(pid interface{}, trigger int, options ...RequestOptionFunc) (*PipelineTrigger, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/triggers/%d", url.QueryEscape(project), trigger)
+	u := fmt.Sprintf("projects/%s/triggers/%d", pathEscape(project), trigger)
 
 	req, err := s.client.NewRequest("GET", u, nil, options)
 	if err != nil {
@@ -97,12 +96,12 @@ type AddPipelineTriggerOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/pipeline_triggers.html#create-a-project-trigger
-func (s *PipelineTriggersService) AddPipelineTrigger(pid interface{}, opt *AddPipelineTriggerOptions, options ...OptionFunc) (*PipelineTrigger, *Response, error) {
+func (s *PipelineTriggersService) AddPipelineTrigger(pid interface{}, opt *AddPipelineTriggerOptions, options ...RequestOptionFunc) (*PipelineTrigger, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/triggers", url.QueryEscape(project))
+	u := fmt.Sprintf("projects/%s/triggers", pathEscape(project))
 
 	req, err := s.client.NewRequest("POST", u, opt, options)
 	if err != nil {
@@ -130,12 +129,12 @@ type EditPipelineTriggerOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/pipeline_triggers.html#update-a-project-trigger
-func (s *PipelineTriggersService) EditPipelineTrigger(pid interface{}, trigger int, opt *EditPipelineTriggerOptions, options ...OptionFunc) (*PipelineTrigger, *Response, error) {
+func (s *PipelineTriggersService) EditPipelineTrigger(pid interface{}, trigger int, opt *EditPipelineTriggerOptions, options ...RequestOptionFunc) (*PipelineTrigger, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/triggers/%d", url.QueryEscape(project), trigger)
+	u := fmt.Sprintf("projects/%s/triggers/%d", pathEscape(project), trigger)
 
 	req, err := s.client.NewRequest("PUT", u, opt, options)
 	if err != nil {
@@ -156,12 +155,12 @@ func (s *PipelineTriggersService) EditPipelineTrigger(pid interface{}, trigger i
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/pipeline_triggers.html#take-ownership-of-a-project-trigger
-func (s *PipelineTriggersService) TakeOwnershipOfPipelineTrigger(pid interface{}, trigger int, options ...OptionFunc) (*PipelineTrigger, *Response, error) {
+func (s *PipelineTriggersService) TakeOwnershipOfPipelineTrigger(pid interface{}, trigger int, options ...RequestOptionFunc) (*PipelineTrigger, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/triggers/%d/take_ownership", url.QueryEscape(project), trigger)
+	u := fmt.Sprintf("projects/%s/triggers/%d/take_ownership", pathEscape(project), trigger)
 
 	req, err := s.client.NewRequest("POST", u, nil, options)
 	if err != nil {
@@ -181,12 +180,12 @@ func (s *PipelineTriggersService) TakeOwnershipOfPipelineTrigger(pid interface{}
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/pipeline_triggers.html#remove-a-project-trigger
-func (s *PipelineTriggersService) DeletePipelineTrigger(pid interface{}, trigger int, options ...OptionFunc) (*Response, error) {
+func (s *PipelineTriggersService) DeletePipelineTrigger(pid interface{}, trigger int, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/triggers/%d", url.QueryEscape(project), trigger)
+	u := fmt.Sprintf("projects/%s/triggers/%d", pathEscape(project), trigger)
 
 	req, err := s.client.NewRequest("DELETE", u, nil, options)
 	if err != nil {
@@ -210,12 +209,12 @@ type RunPipelineTriggerOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/ci/triggers/README.html#triggering-a-pipeline
-func (s *PipelineTriggersService) RunPipelineTrigger(pid interface{}, opt *RunPipelineTriggerOptions, options ...OptionFunc) (*Pipeline, *Response, error) {
+func (s *PipelineTriggersService) RunPipelineTrigger(pid interface{}, opt *RunPipelineTriggerOptions, options ...RequestOptionFunc) (*Pipeline, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/trigger/pipeline", url.QueryEscape(project))
+	u := fmt.Sprintf("projects/%s/trigger/pipeline", pathEscape(project))
 
 	req, err := s.client.NewRequest("POST", u, opt, options)
 	if err != nil {

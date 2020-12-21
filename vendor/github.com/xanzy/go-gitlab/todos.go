@@ -67,12 +67,12 @@ type TodoTarget struct {
 	Weight       int    `json:"weight"`
 
 	// Only available for type MergeRequest
-	ApprovalsBeforeMerge      bool   `json:"approvals_before_merge"`
+	ApprovalsBeforeMerge      int    `json:"approvals_before_merge"`
 	ForceRemoveSourceBranch   bool   `json:"force_remove_source_branch"`
-	MergeCommitSha            string `json:"merge_commit_sha"`
+	MergeCommitSHA            string `json:"merge_commit_sha"`
 	MergeWhenPipelineSucceeds bool   `json:"merge_when_pipeline_succeeds"`
 	MergeStatus               string `json:"merge_status"`
-	Sha                       string `json:"sha"`
+	SHA                       string `json:"sha"`
 	ShouldRemoveSourceBranch  bool   `json:"should_remove_source_branch"`
 	SourceBranch              string `json:"source_branch"`
 	SourceProjectID           int    `json:"source_project_id"`
@@ -121,6 +121,7 @@ func (t Todo) String() string {
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/todos.html#get-a-list-of-todos
 type ListTodosOptions struct {
+	ListOptions
 	Action    *TodoAction `url:"action,omitempty" json:"action,omitempty"`
 	AuthorID  *int        `url:"author_id,omitempty" json:"author_id,omitempty"`
 	ProjectID *int        `url:"project_id,omitempty" json:"project_id,omitempty"`
@@ -133,7 +134,7 @@ type ListTodosOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/todos.html#get-a-list-of-todos
-func (s *TodosService) ListTodos(opt *ListTodosOptions, options ...OptionFunc) ([]*Todo, *Response, error) {
+func (s *TodosService) ListTodos(opt *ListTodosOptions, options ...RequestOptionFunc) ([]*Todo, *Response, error) {
 	req, err := s.client.NewRequest("GET", "todos", opt, options)
 	if err != nil {
 		return nil, nil, err
@@ -151,7 +152,7 @@ func (s *TodosService) ListTodos(opt *ListTodosOptions, options ...OptionFunc) (
 // MarkTodoAsDone marks a single pending todo given by its ID for the current user as done.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/todos.html#mark-a-todo-as-done
-func (s *TodosService) MarkTodoAsDone(id int, options ...OptionFunc) (*Response, error) {
+func (s *TodosService) MarkTodoAsDone(id int, options ...RequestOptionFunc) (*Response, error) {
 	u := fmt.Sprintf("todos/%d/mark_as_done", id)
 
 	req, err := s.client.NewRequest("POST", u, nil, options)
@@ -165,7 +166,7 @@ func (s *TodosService) MarkTodoAsDone(id int, options ...OptionFunc) (*Response,
 // MarkAllTodosAsDone marks all pending todos for the current user as done.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/todos.html#mark-all-todos-as-done
-func (s *TodosService) MarkAllTodosAsDone(options ...OptionFunc) (*Response, error) {
+func (s *TodosService) MarkAllTodosAsDone(options ...RequestOptionFunc) (*Response, error) {
 	req, err := s.client.NewRequest("POST", "todos/mark_as_done", nil, options)
 	if err != nil {
 		return nil, err

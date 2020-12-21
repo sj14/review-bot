@@ -3,7 +3,6 @@ package gitlab
 import (
 	"errors"
 	"fmt"
-	"net/url"
 )
 
 // NotificationSettingsService handles communication with the notification settings
@@ -51,7 +50,7 @@ func (ns NotificationSettings) String() string {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/notification_settings.html#global-notification-settings
-func (s *NotificationSettingsService) GetGlobalSettings(options ...OptionFunc) (*NotificationSettings, *Response, error) {
+func (s *NotificationSettingsService) GetGlobalSettings(options ...RequestOptionFunc) (*NotificationSettings, *Response, error) {
 	u := "notification_settings"
 
 	req, err := s.client.NewRequest("GET", u, nil, options)
@@ -91,7 +90,7 @@ type NotificationSettingsOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/notification_settings.html#update-global-notification-settings
-func (s *NotificationSettingsService) UpdateGlobalSettings(opt *NotificationSettingsOptions, options ...OptionFunc) (*NotificationSettings, *Response, error) {
+func (s *NotificationSettingsService) UpdateGlobalSettings(opt *NotificationSettingsOptions, options ...RequestOptionFunc) (*NotificationSettings, *Response, error) {
 	if opt.Level != nil && *opt.Level == GlobalNotificationLevel {
 		return nil, nil, errors.New(
 			"notification level 'global' is not valid for global notification settings")
@@ -117,12 +116,12 @@ func (s *NotificationSettingsService) UpdateGlobalSettings(opt *NotificationSett
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/notification_settings.html#group-project-level-notification-settings
-func (s *NotificationSettingsService) GetSettingsForGroup(gid interface{}, options ...OptionFunc) (*NotificationSettings, *Response, error) {
+func (s *NotificationSettingsService) GetSettingsForGroup(gid interface{}, options ...RequestOptionFunc) (*NotificationSettings, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("groups/%s/notification_settings", url.QueryEscape(group))
+	u := fmt.Sprintf("groups/%s/notification_settings", pathEscape(group))
 
 	req, err := s.client.NewRequest("GET", u, nil, options)
 	if err != nil {
@@ -142,12 +141,12 @@ func (s *NotificationSettingsService) GetSettingsForGroup(gid interface{}, optio
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/notification_settings.html#group-project-level-notification-settings
-func (s *NotificationSettingsService) GetSettingsForProject(pid interface{}, options ...OptionFunc) (*NotificationSettings, *Response, error) {
+func (s *NotificationSettingsService) GetSettingsForProject(pid interface{}, options ...RequestOptionFunc) (*NotificationSettings, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/notification_settings", url.QueryEscape(project))
+	u := fmt.Sprintf("projects/%s/notification_settings", pathEscape(project))
 
 	req, err := s.client.NewRequest("GET", u, nil, options)
 	if err != nil {
@@ -167,12 +166,12 @@ func (s *NotificationSettingsService) GetSettingsForProject(pid interface{}, opt
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/notification_settings.html#update-group-project-level-notification-settings
-func (s *NotificationSettingsService) UpdateSettingsForGroup(gid interface{}, opt *NotificationSettingsOptions, options ...OptionFunc) (*NotificationSettings, *Response, error) {
+func (s *NotificationSettingsService) UpdateSettingsForGroup(gid interface{}, opt *NotificationSettingsOptions, options ...RequestOptionFunc) (*NotificationSettings, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("groups/%s/notification_settings", url.QueryEscape(group))
+	u := fmt.Sprintf("groups/%s/notification_settings", pathEscape(group))
 
 	req, err := s.client.NewRequest("PUT", u, opt, options)
 	if err != nil {
@@ -192,12 +191,12 @@ func (s *NotificationSettingsService) UpdateSettingsForGroup(gid interface{}, op
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/notification_settings.html#update-group-project-level-notification-settings
-func (s *NotificationSettingsService) UpdateSettingsForProject(pid interface{}, opt *NotificationSettingsOptions, options ...OptionFunc) (*NotificationSettings, *Response, error) {
+func (s *NotificationSettingsService) UpdateSettingsForProject(pid interface{}, opt *NotificationSettingsOptions, options ...RequestOptionFunc) (*NotificationSettings, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/notification_settings", url.QueryEscape(project))
+	u := fmt.Sprintf("projects/%s/notification_settings", pathEscape(project))
 
 	req, err := s.client.NewRequest("PUT", u, opt, options)
 	if err != nil {
