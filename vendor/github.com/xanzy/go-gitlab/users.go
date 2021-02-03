@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -117,7 +117,10 @@ type ListUsersOptions struct {
 	CreatedAfter         *time.Time `url:"created_after,omitempty" json:"created_after,omitempty"`
 	OrderBy              *string    `url:"order_by,omitempty" json:"order_by,omitempty"`
 	Sort                 *string    `url:"sort,omitempty" json:"sort,omitempty"`
+	TwoFactor            *string    `url:"two_factor,omitempty" json:"two_factor,omitempty"`
+	Admins               *bool      `url:"admins,omitempty" json:"admins,omitempty"`
 	External             *bool      `url:"external,omitempty" json:"external,omitempty"`
+	WithoutProjects      *bool      `url:"without_projects,omitempty" json:"without_projects,omitempty"`
 	WithCustomAttributes *bool      `url:"with_custom_attributes,omitempty" json:"with_custom_attributes,omitempty"`
 }
 
@@ -942,10 +945,10 @@ func (s *UsersService) SetUserStatus(opt *UserStatusOptions, options ...RequestO
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/users.html#user-memberships-admin-only
 type UserMembership struct {
-	SourceID    int    `json:"source_id"`
-	SourceName  string `json:"source_name"`
-	SourceType  string `json:"source_type"`
-	AccessLevel string `json:"access_level"`
+	SourceID    int              `json:"source_id"`
+	SourceName  string           `json:"source_name"`
+	SourceType  string           `json:"source_type"`
+	AccessLevel AccessLevelValue `json:"access_level"`
 }
 
 // GetUserMembershipOptions represents the options available to query user memberships.

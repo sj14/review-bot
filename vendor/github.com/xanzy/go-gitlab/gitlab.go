@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -100,6 +100,7 @@ type Client struct {
 	// Services used for talking to different parts of the GitLab API.
 	AccessRequests        *AccessRequestsService
 	Applications          *ApplicationsService
+	AuditEvents           *AuditEventsService
 	AwardEmoji            *AwardEmojiService
 	Boards                *IssueBoardsService
 	Branches              *BranchesService
@@ -129,6 +130,7 @@ type Client struct {
 	Groups                *GroupsService
 	InstanceCluster       *InstanceClustersService
 	InstanceVariables     *InstanceVariablesService
+	Invites               *InvitesService
 	IssueLinks            *IssueLinksService
 	Issues                *IssuesService
 	IssuesStatistics      *IssuesStatisticsService
@@ -143,6 +145,7 @@ type Client struct {
 	Namespaces            *NamespacesService
 	Notes                 *NotesService
 	NotificationSettings  *NotificationSettingsService
+	Packages              *PackagesService
 	PagesDomains          *PagesDomainsService
 	PipelineSchedules     *PipelineSchedulesService
 	PipelineTriggers      *PipelineTriggersService
@@ -264,6 +267,7 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	// Create all the public services.
 	c.AccessRequests = &AccessRequestsService{client: c}
 	c.Applications = &ApplicationsService{client: c}
+	c.AuditEvents = &AuditEventsService{client: c}
 	c.AwardEmoji = &AwardEmojiService{client: c}
 	c.Boards = &IssueBoardsService{client: c}
 	c.Branches = &BranchesService{client: c}
@@ -293,6 +297,7 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	c.Groups = &GroupsService{client: c}
 	c.InstanceCluster = &InstanceClustersService{client: c}
 	c.InstanceVariables = &InstanceVariablesService{client: c}
+	c.Invites = &InvitesService{client: c}
 	c.IssueLinks = &IssueLinksService{client: c}
 	c.Issues = &IssuesService{client: c, timeStats: timeStats}
 	c.IssuesStatistics = &IssuesStatisticsService{client: c}
@@ -307,6 +312,7 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	c.Namespaces = &NamespacesService{client: c}
 	c.Notes = &NotesService{client: c}
 	c.NotificationSettings = &NotificationSettingsService{client: c}
+	c.Packages = &PackagesService{client: c}
 	c.PagesDomains = &PagesDomainsService{client: c}
 	c.PipelineSchedules = &PipelineSchedulesService{client: c}
 	c.PipelineTriggers = &PipelineTriggersService{client: c}
@@ -428,7 +434,7 @@ func (c *Client) configureLimiter() error {
 	if v := resp.Header.Get(headerRateLimit); v != "" {
 		if rateLimit, _ := strconv.ParseFloat(v, 64); rateLimit > 0 {
 			// The rate limit is based on requests per minute, so for our limiter to
-			// work correctly we devide the limit by 60 to get the limit per second.
+			// work correctly we divide the limit by 60 to get the limit per second.
 			rateLimit /= 60
 			// Configure the limit and burst using a split of 2/3 for the limit and
 			// 1/3 for the burst. This enables clients to burst 1/3 of the allowed

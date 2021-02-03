@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -68,7 +68,6 @@ func (s *ProjectMirrorService) ListProjectMirror(pid interface{}, options ...Req
 	}
 
 	return pm, resp, err
-
 }
 
 // AddProjectMirrorOptions contains the properties requires to create

@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -48,6 +48,7 @@ type MergeRequest struct {
 	Author                    *BasicUser   `json:"author"`
 	Assignee                  *BasicUser   `json:"assignee"`
 	Assignees                 []*BasicUser `json:"assignees"`
+	Reviewers                 []*BasicUser `json:"reviewers"`
 	SourceProjectID           int          `json:"source_project_id"`
 	TargetProjectID           int          `json:"target_project_id"`
 	Labels                    Labels       `json:"labels"`
@@ -69,6 +70,7 @@ type MergeRequest struct {
 	ChangesCount              string       `json:"changes_count"`
 	ShouldRemoveSourceBranch  bool         `json:"should_remove_source_branch"`
 	ForceRemoveSourceBranch   bool         `json:"force_remove_source_branch"`
+	AllowCollaboration        bool         `json:"allow_collaboration"`
 	WebURL                    string       `json:"web_url"`
 	DiscussionLocked          bool         `json:"discussion_locked"`
 	Changes                   []struct {
@@ -101,7 +103,9 @@ type MergeRequest struct {
 		Count          int `json:"count"`
 		CompletedCount int `json:"completed_count"`
 	} `json:"task_completion_status"`
-	HasConflicts bool `json:"has_conflicts"`
+	HasConflicts                bool `json:"has_conflicts"`
+	BlockingDiscussionsResolved bool `json:"blocking_discussions_resolved"`
+	Overflow                    bool `json:"overflow"`
 }
 
 func (m MergeRequest) String() string {
@@ -152,6 +156,8 @@ type ListMergeRequestsOptions struct {
 	Scope                  *string    `url:"scope,omitempty" json:"scope,omitempty"`
 	AuthorID               *int       `url:"author_id,omitempty" json:"author_id,omitempty"`
 	AssigneeID             *int       `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
+	ReviewerID             *int       `url:"reviewer_id,omitempty" json:"reviewer_id,omitempty"`
+	ReviewerUsername       *string    `url:"reviewer_username,omitempty" json:"reviewer_username,omitempty"`
 	MyReactionEmoji        *string    `url:"my_reaction_emoji,omitempty" json:"my_reaction_emoji,omitempty"`
 	SourceBranch           *string    `url:"source_branch,omitempty" json:"source_branch,omitempty"`
 	TargetBranch           *string    `url:"target_branch,omitempty" json:"target_branch,omitempty"`
@@ -205,6 +211,8 @@ type ListGroupMergeRequestsOptions struct {
 	Scope                  *string    `url:"scope,omitempty" json:"scope,omitempty"`
 	AuthorID               *int       `url:"author_id,omitempty" json:"author_id,omitempty"`
 	AssigneeID             *int       `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
+	ReviewerID             *int       `url:"reviewer_id,omitempty" json:"reviewer_id,omitempty"`
+	ReviewerUsername       *string    `url:"reviewer_username,omitempty" json:"reviewer_username,omitempty"`
 	MyReactionEmoji        *string    `url:"my_reaction_emoji,omitempty" json:"my_reaction_emoji,omitempty"`
 	SourceBranch           *string    `url:"source_branch,omitempty" json:"source_branch,omitempty"`
 	TargetBranch           *string    `url:"target_branch,omitempty" json:"target_branch,omitempty"`
@@ -260,6 +268,8 @@ type ListProjectMergeRequestsOptions struct {
 	Scope                  *string    `url:"scope,omitempty" json:"scope,omitempty"`
 	AuthorID               *int       `url:"author_id,omitempty" json:"author_id,omitempty"`
 	AssigneeID             *int       `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
+	ReviewerID             *int       `url:"reviewer_id,omitempty" json:"reviewer_id,omitempty"`
+	ReviewerUsername       *string    `url:"reviewer_username,omitempty" json:"reviewer_username,omitempty"`
 	MyReactionEmoji        *string    `url:"my_reaction_emoji,omitempty" json:"my_reaction_emoji,omitempty"`
 	SourceBranch           *string    `url:"source_branch,omitempty" json:"source_branch,omitempty"`
 	TargetBranch           *string    `url:"target_branch,omitempty" json:"target_branch,omitempty"`
@@ -385,19 +395,28 @@ func (s *MergeRequestsService) GetMergeRequestCommits(pid interface{}, mergeRequ
 	return c, resp, err
 }
 
+// GetMergeRequestChangesOptions represents the available GetMergeRequestChanges()
+// options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/merge_requests.html#get-single-mr-changes
+type GetMergeRequestChangesOptions struct {
+	AccessRawDiffs *bool `url:"access_raw_diffs,omitempty" json:"access_raw_diffs,omitempty"`
+}
+
 // GetMergeRequestChanges shows information about the merge request including
 // its files and changes.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/merge_requests.html#get-single-mr-changes
-func (s *MergeRequestsService) GetMergeRequestChanges(pid interface{}, mergeRequest int, options ...RequestOptionFunc) (*MergeRequest, *Response, error) {
+func (s *MergeRequestsService) GetMergeRequestChanges(pid interface{}, mergeRequest int, opt *GetMergeRequestChangesOptions, options ...RequestOptionFunc) (*MergeRequest, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
 	u := fmt.Sprintf("projects/%s/merge_requests/%d/changes", pathEscape(project), mergeRequest)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest("GET", u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -532,6 +551,7 @@ type CreateMergeRequestOptions struct {
 	Labels             Labels  `url:"labels,comma,omitempty" json:"labels,omitempty"`
 	AssigneeID         *int    `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
 	AssigneeIDs        []int   `url:"assignee_ids,omitempty" json:"assignee_ids,omitempty"`
+	ReviewerIDs        []int   `url:"reviewer_ids,omitempty" json:"reviewer_ids,omitempty"`
 	TargetProjectID    *int    `url:"target_project_id,omitempty" json:"target_project_id,omitempty"`
 	MilestoneID        *int    `url:"milestone_id,omitempty" json:"milestone_id,omitempty"`
 	RemoveSourceBranch *bool   `url:"remove_source_branch,omitempty" json:"remove_source_branch,omitempty"`
@@ -575,6 +595,7 @@ type UpdateMergeRequestOptions struct {
 	TargetBranch       *string `url:"target_branch,omitempty" json:"target_branch,omitempty"`
 	AssigneeID         *int    `url:"assignee_id,omitempty" json:"assignee_id,omitempty"`
 	AssigneeIDs        []int   `url:"assignee_ids,omitempty" json:"assignee_ids,omitempty"`
+	ReviewerIDs        []int   `url:"reviewer_ids,omitempty" json:"reviewer_ids,omitempty"`
 	Labels             Labels  `url:"labels,comma,omitempty" json:"labels,omitempty"`
 	AddLabels          Labels  `url:"add_labels,comma,omitempty" json:"add_labels,omitempty"`
 	RemoveLabels       Labels  `url:"remove_labels,comma,omitempty" json:"remove_labels,omitempty"`
