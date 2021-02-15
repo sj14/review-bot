@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Arkbriar
+// Copyright 2021, Arkbriar
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package gitlab
 import (
 	"bytes"
 	"fmt"
-	"io"
+	"net/http"
 	"time"
 )
 
@@ -119,7 +119,7 @@ func (s *JobsService) ListProjectJobs(pid interface{}, opts *ListJobsOptions, op
 	}
 	u := fmt.Sprintf("projects/%s/jobs", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opts, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opts, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -145,7 +145,7 @@ func (s *JobsService) ListPipelineJobs(pid interface{}, pipelineID int, opts *Li
 	}
 	u := fmt.Sprintf("projects/%s/pipelines/%d/jobs", pathEscape(project), pipelineID)
 
-	req, err := s.client.NewRequest("GET", u, opts, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opts, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -171,7 +171,7 @@ func (s *JobsService) ListPipelineBridges(pid interface{}, pipelineID int, opts 
 	}
 	u := fmt.Sprintf("projects/%s/pipelines/%d/bridges", pathEscape(project), pipelineID)
 
-	req, err := s.client.NewRequest("GET", u, opts, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opts, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -196,7 +196,7 @@ func (s *JobsService) GetJob(pid interface{}, jobID int, options ...RequestOptio
 	}
 	u := fmt.Sprintf("projects/%s/jobs/%d", pathEscape(project), jobID)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -214,14 +214,14 @@ func (s *JobsService) GetJob(pid interface{}, jobID int, options ...RequestOptio
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/job_artifacts.html#get-job-artifacts
-func (s *JobsService) GetJobArtifacts(pid interface{}, jobID int, options ...RequestOptionFunc) (io.Reader, *Response, error) {
+func (s *JobsService) GetJobArtifacts(pid interface{}, jobID int, options ...RequestOptionFunc) (*bytes.Reader, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
 	u := fmt.Sprintf("projects/%s/jobs/%d/artifacts", pathEscape(project), jobID)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -232,7 +232,7 @@ func (s *JobsService) GetJobArtifacts(pid interface{}, jobID int, options ...Req
 		return nil, resp, err
 	}
 
-	return artifactsBuf, resp, err
+	return bytes.NewReader(artifactsBuf.Bytes()), resp, err
 }
 
 // DownloadArtifactsFileOptions represents the available DownloadArtifactsFile()
@@ -249,14 +249,14 @@ type DownloadArtifactsFileOptions struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/job_artifacts.html#download-the-artifacts-archive
-func (s *JobsService) DownloadArtifactsFile(pid interface{}, refName string, opt *DownloadArtifactsFileOptions, options ...RequestOptionFunc) (io.Reader, *Response, error) {
+func (s *JobsService) DownloadArtifactsFile(pid interface{}, refName string, opt *DownloadArtifactsFileOptions, options ...RequestOptionFunc) (*bytes.Reader, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
 	u := fmt.Sprintf("projects/%s/jobs/artifacts/%s/download", pathEscape(project), refName)
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -267,7 +267,7 @@ func (s *JobsService) DownloadArtifactsFile(pid interface{}, refName string, opt
 		return nil, resp, err
 	}
 
-	return artifactsBuf, resp, err
+	return bytes.NewReader(artifactsBuf.Bytes()), resp, err
 }
 
 // DownloadSingleArtifactsFile download a file from the artifacts from the
@@ -277,7 +277,7 @@ func (s *JobsService) DownloadArtifactsFile(pid interface{}, refName string, opt
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/job_artifacts.html#download-a-single-artifact-file-by-job-id
-func (s *JobsService) DownloadSingleArtifactsFile(pid interface{}, jobID int, artifactPath string, options ...RequestOptionFunc) (io.Reader, *Response, error) {
+func (s *JobsService) DownloadSingleArtifactsFile(pid interface{}, jobID int, artifactPath string, options ...RequestOptionFunc) (*bytes.Reader, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
@@ -290,7 +290,7 @@ func (s *JobsService) DownloadSingleArtifactsFile(pid interface{}, jobID int, ar
 		artifactPath,
 	)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -301,21 +301,21 @@ func (s *JobsService) DownloadSingleArtifactsFile(pid interface{}, jobID int, ar
 		return nil, resp, err
 	}
 
-	return artifactBuf, resp, err
+	return bytes.NewReader(artifactBuf.Bytes()), resp, err
 }
 
 // GetTraceFile gets a trace of a specific job of a project
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/jobs.html#get-a-trace-file
-func (s *JobsService) GetTraceFile(pid interface{}, jobID int, options ...RequestOptionFunc) (io.Reader, *Response, error) {
+func (s *JobsService) GetTraceFile(pid interface{}, jobID int, options ...RequestOptionFunc) (*bytes.Reader, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
 	u := fmt.Sprintf("projects/%s/jobs/%d/trace", pathEscape(project), jobID)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -326,7 +326,7 @@ func (s *JobsService) GetTraceFile(pid interface{}, jobID int, options ...Reques
 		return nil, resp, err
 	}
 
-	return traceBuf, resp, err
+	return bytes.NewReader(traceBuf.Bytes()), resp, err
 }
 
 // CancelJob cancels a single job of a project.
@@ -340,7 +340,7 @@ func (s *JobsService) CancelJob(pid interface{}, jobID int, options ...RequestOp
 	}
 	u := fmt.Sprintf("projects/%s/jobs/%d/cancel", pathEscape(project), jobID)
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -365,7 +365,7 @@ func (s *JobsService) RetryJob(pid interface{}, jobID int, options ...RequestOpt
 	}
 	u := fmt.Sprintf("projects/%s/jobs/%d/retry", pathEscape(project), jobID)
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -391,7 +391,7 @@ func (s *JobsService) EraseJob(pid interface{}, jobID int, options ...RequestOpt
 	}
 	u := fmt.Sprintf("projects/%s/jobs/%d/erase", pathEscape(project), jobID)
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -417,7 +417,7 @@ func (s *JobsService) KeepArtifacts(pid interface{}, jobID int, options ...Reque
 	}
 	u := fmt.Sprintf("projects/%s/jobs/%d/artifacts/keep", pathEscape(project), jobID)
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -442,7 +442,7 @@ func (s *JobsService) PlayJob(pid interface{}, jobID int, options ...RequestOpti
 	}
 	u := fmt.Sprintf("projects/%s/jobs/%d/play", pathEscape(project), jobID)
 
-	req, err := s.client.NewRequest("POST", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -467,7 +467,7 @@ func (s *JobsService) DeleteArtifacts(pid interface{}, jobID int, options ...Req
 	}
 	u := fmt.Sprintf("projects/%s/jobs/%d/artifacts", pathEscape(project), jobID)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
