@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -191,6 +191,10 @@ type IssueEvent struct {
 			Previous int `json:"previous"`
 			Current  int `json:"current"`
 		} `json:"updated_by_id"`
+		TotalTimeSpent struct {
+			Previous int `json:"previous"`
+			Current  int `json:"current"`
+		} `json:"total_time_spent"`
 	} `json:"changes"`
 }
 
@@ -344,8 +348,8 @@ type MergeCommentEvent struct {
 		Position         *NotePosition `json:"position"`
 		ProjectID        int           `json:"project_id"`
 		ResolvedAt       string        `json:"resolved_at"`
-		ResolvedByID     string        `json:"resolved_by_id"`
-		ResolvedByPush   string        `json:"resolved_by_push"`
+		ResolvedByID     int           `json:"resolved_by_id"`
+		ResolvedByPush   bool          `json:"resolved_by_push"`
 		StDiff           *Diff         `json:"st_diff"`
 		System           bool          `json:"system"`
 		Type             string        `json:"type"`
