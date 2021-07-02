@@ -15,7 +15,7 @@ github.com/pmezard/go-difflib/difflib
 # github.com/stretchr/testify v1.7.0
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
-# github.com/xanzy/go-gitlab v0.50.0
+# github.com/xanzy/go-gitlab v0.50.1
 github.com/xanzy/go-gitlab
 # golang.org/x/net v0.0.0-20201021035429-f5854403a974
 golang.org/x/net/context
