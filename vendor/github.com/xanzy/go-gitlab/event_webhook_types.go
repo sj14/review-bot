@@ -640,6 +640,10 @@ type PipelineEvent struct {
 		FinishedAt     string   `json:"finished_at"`
 		Duration       int      `json:"duration"`
 		QueuedDuration int      `json:"queued_duration"`
+		Variables      []struct {
+			Key   string `json:"key"`
+			Value string `json:"value"`
+		} `json:"variables"`
 	} `json:"object_attributes"`
 	MergeRequest struct {
 		ID                 int    `json:"id"`
@@ -742,6 +746,7 @@ type PushEvent struct {
 	Commits    []*struct {
 		ID        string     `json:"id"`
 		Message   string     `json:"message"`
+		Title     string     `json:"title"`
 		Timestamp *time.Time `json:"timestamp"`
 		URL       string     `json:"url"`
 		Author    struct {
@@ -896,6 +901,7 @@ type TagEvent struct {
 	Commits    []*struct {
 		ID        string     `json:"id"`
 		Message   string     `json:"message"`
+		Title     string     `json:"title"`
 		Timestamp *time.Time `json:"timestamp"`
 		URL       string     `json:"url"`
 		Author    struct {
