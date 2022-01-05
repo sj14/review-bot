@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -76,6 +77,52 @@ func AccessLevel(v AccessLevelValue) *AccessLevelValue {
 	p := new(AccessLevelValue)
 	*p = v
 	return p
+}
+
+// ApproverIDValue represents an approver ID value within GitLab.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/merge_requests.html#list-merge-requests
+type ApproverIDValue string
+
+// List of available approver ID values.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/merge_requests.html#list-merge-requests
+const (
+	ApproverIDAny  ApproverIDValue = "Any"
+	ApproverIDNone ApproverIDValue = "None"
+)
+
+// ApproverIDsValue represents an approvers ID value within GitLab.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/merge_requests.html#list-merge-requests
+type ApproverIDsValue struct {
+	value interface{}
+}
+
+func ApproverIDs(v interface{}) *ApproverIDsValue {
+	switch v.(type) {
+	case ApproverIDValue, []int:
+		return &ApproverIDsValue{value: v}
+	default:
+		panic("Unsupported value passed as approver ID")
+	}
+}
+
+func (a *ApproverIDsValue) EncodeValues(key string, v *url.Values) error {
+	switch value := a.value.(type) {
+	case ApproverIDValue:
+		v.Set(key, string(value))
+	case []int:
+		v.Del(key)
+		v.Del(key + "[]")
+		for _, id := range value {
+			v.Add(key+"[]", strconv.Itoa(id))
+		}
+	}
+	return nil
 }
 
 // AvailabilityValue represents an availability value within GitLab.
@@ -556,6 +603,15 @@ const (
 	TodoTargetMergeRequest     TodoTargetType = "MergeRequest"
 )
 
+// UploadType represents the available upload types.
+type UploadType string
+
+// The available upload types.
+const (
+	UploadAvatar UploadType = "avatar"
+	UploadFile   UploadType = "file"
+)
+
 // VariableTypeValue represents a variable type within GitLab.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/
@@ -628,9 +684,8 @@ func Bool(v bool) *bool {
 	return p
 }
 
-// Int is a helper routine that allocates a new int32 value
-// to store v and returns a pointer to it, but unlike Int32
-// its argument value is an int.
+// Int is a helper routine that allocates a new int value
+// to store v and returns a pointer to it.
 func Int(v int) *int {
 	p := new(int)
 	*p = v
