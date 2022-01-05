@@ -17,14 +17,12 @@
 package gitlab
 
 import (
-	"bytes"
 	"fmt"
 	"io"
-	"mime/multipart"
 	"net/http"
-	"os"
-	"path/filepath"
 	"time"
+
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 )
 
 // ProjectsService handles communication with the repositories related methods
@@ -65,6 +63,7 @@ type Project struct {
 	ResolveOutdatedDiffDiscussions            bool                       `json:"resolve_outdated_diff_discussions"`
 	ContainerExpirationPolicy                 *ContainerExpirationPolicy `json:"container_expiration_policy,omitempty"`
 	ContainerRegistryEnabled                  bool                       `json:"container_registry_enabled"`
+	ContainerRegistryAccessLevel              AccessControlValue         `json:"container_registry_access_level"`
 	CreatedAt                                 *time.Time                 `json:"created_at,omitempty"`
 	LastActivityAt                            *time.Time                 `json:"last_activity_at,omitempty"`
 	CreatorID                                 int                        `json:"creator_id"`
@@ -342,6 +341,31 @@ func (s *ProjectsService) ListUserProjects(uid interface{}, opt *ListProjectsOpt
 	return p, resp, err
 }
 
+// ListUserStarredProjects gets a list of projects starred by the given user.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/projects.html#list-projects-starred-by-a-user
+func (s *ProjectsService) ListUserStarredProjects(uid interface{}, opt *ListProjectsOptions, options ...RequestOptionFunc) ([]*Project, *Response, error) {
+	user, err := parseID(uid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("users/%s/starred_projects", user)
+
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var p []*Project
+	resp, err := s.client.Do(req, &p)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return p, resp, err
+}
+
 // ProjectUser represents a GitLab project user.
 type ProjectUser struct {
 	ID        int    `json:"id"`
@@ -369,7 +393,7 @@ func (s *ProjectsService) ListProjectsUsers(pid interface{}, opt *ListProjectUse
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/users", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/users", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
@@ -403,7 +427,7 @@ type ListProjectGroupOptions struct {
 	Search               *string           `url:"search,omitempty" json:"search,omitempty"`
 	SharedMinAccessLevel *AccessLevelValue `url:"shared_min_access_level,omitempty" json:"shared_min_access_level,omitempty"`
 	SharedVisiableOnly   *bool             `url:"shared_visible_only,omitempty" json:"shared_visible_only,omitempty"`
-	SkipGroups           []int             `url:"skip_groups,omitempty" json:"skip_groups,omitempty"`
+	SkipGroups           *[]int            `url:"skip_groups,omitempty" json:"skip_groups,omitempty"`
 	WithShared           *bool             `url:"with_shared,omitempty" json:"with_shared,omitempty"`
 }
 
@@ -416,7 +440,7 @@ func (s *ProjectsService) ListProjectsGroups(pid interface{}, opt *ListProjectGr
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/groups", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/groups", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
@@ -445,7 +469,7 @@ func (s *ProjectsService) GetProjectLanguages(pid interface{}, options ...Reques
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/languages", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/languages", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
@@ -480,7 +504,7 @@ func (s *ProjectsService) GetProject(pid interface{}, opt *GetProjectOptions, op
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s", pathEscape(project))
+	u := fmt.Sprintf("projects/%s", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
@@ -541,7 +565,7 @@ func (s *ProjectsService) GetProjectEvents(pid interface{}, opt *GetProjectEvent
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/events", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/events", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
@@ -567,6 +591,7 @@ type CreateProjectOptions struct {
 	AutoDevopsDeployStrategy                  *string                              `url:"auto_devops_deploy_strategy,omitempty" json:"auto_devops_deploy_strategy,omitempty"`
 	AutoDevopsEnabled                         *bool                                `url:"auto_devops_enabled,omitempty" json:"auto_devops_enabled,omitempty"`
 	AutocloseReferencedIssues                 *bool                                `url:"autoclose_referenced_issues,omitempty" json:"autoclose_referenced_issues,omitempty"`
+	Avatar                                    *ProjectAvatar                       `url:"-" json:"-"`
 	BuildCoverageRegex                        *string                              `url:"build_coverage_regex,omitempty" json:"build_coverage_regex,omitempty"`
 	BuildGitStrategy                          *string                              `url:"build_git_strategy,omitempty" json:"build_git_strategy,omitempty"`
 	BuildTimeout                              *int                                 `url:"build_timeout,omitempty" json:"build_timeout,omitempty"`
@@ -646,6 +671,11 @@ type ContainerExpirationPolicyAttributes struct {
 	NameRegex *string `url:"name_regex,omitempty" json:"name_regex,omitempty"`
 }
 
+type ProjectAvatar struct {
+	Filename string
+	Image    io.Reader
+}
+
 // CreateProject creates a new project owned by the authenticated user.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/projects.html#create-project
@@ -657,7 +687,22 @@ func (s *ProjectsService) CreateProject(opt *CreateProjectOptions, options ...Re
 			opt.ContainerExpirationPolicyAttributes.NameRegexDelete
 	}
 
-	req, err := s.client.NewRequest(http.MethodPost, "projects", opt, options)
+	var err error
+	var req *retryablehttp.Request
+
+	if opt.Avatar == nil {
+		req, err = s.client.NewRequest(http.MethodPost, "projects", opt, options)
+	} else {
+		req, err = s.client.UploadRequest(
+			http.MethodPost,
+			"projects",
+			opt.Avatar.Image,
+			opt.Avatar.Filename,
+			UploadAvatar,
+			opt,
+			options,
+		)
+	}
 	if err != nil {
 		return nil, nil, err
 	}
@@ -691,8 +736,23 @@ func (s *ProjectsService) CreateProjectForUser(user int, opt *CreateProjectForUs
 			opt.ContainerExpirationPolicyAttributes.NameRegexDelete
 	}
 
+	var err error
+	var req *retryablehttp.Request
 	u := fmt.Sprintf("projects/user/%d", user)
-	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
+
+	if opt.Avatar == nil {
+		req, err = s.client.NewRequest(http.MethodPost, u, opt, options)
+	} else {
+		req, err = s.client.UploadRequest(
+			http.MethodPost,
+			u,
+			opt.Avatar.Image,
+			opt.Avatar.Filename,
+			UploadAvatar,
+			opt,
+			options,
+		)
+	}
 	if err != nil {
 		return nil, nil, err
 	}
@@ -716,6 +776,7 @@ type EditProjectOptions struct {
 	AutoDevopsDeployStrategy                  *string                              `url:"auto_devops_deploy_strategy,omitempty" json:"auto_devops_deploy_strategy,omitempty"`
 	AutoDevopsEnabled                         *bool                                `url:"auto_devops_enabled,omitempty" json:"auto_devops_enabled,omitempty"`
 	AutocloseReferencedIssues                 *bool                                `url:"autoclose_referenced_issues,omitempty" json:"autoclose_referenced_issues,omitempty"`
+	Avatar                                    *ProjectAvatar                       `url:"-" json:"-"`
 	BuildCoverageRegex                        *string                              `url:"build_coverage_regex,omitempty" json:"build_coverage_regex,omitempty"`
 	BuildGitStrategy                          *string                              `url:"build_git_strategy,omitempty" json:"build_git_strategy,omitempty"`
 	BuildTimeout                              *int                                 `url:"build_timeout,omitempty" json:"build_timeout,omitempty"`
@@ -791,9 +852,23 @@ func (s *ProjectsService) EditProject(pid interface{}, opt *EditProjectOptions, 
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s", pathEscape(project))
+	u := fmt.Sprintf("projects/%s", PathEscape(project))
 
-	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
+	var req *retryablehttp.Request
+
+	if opt.Avatar == nil {
+		req, err = s.client.NewRequest(http.MethodPost, u, opt, options)
+	} else {
+		req, err = s.client.UploadRequest(
+			http.MethodPost,
+			u,
+			opt.Avatar.Image,
+			opt.Avatar.Filename,
+			UploadAvatar,
+			opt,
+			options,
+		)
+	}
 	if err != nil {
 		return nil, nil, err
 	}
@@ -825,7 +900,7 @@ func (s *ProjectsService) ForkProject(pid interface{}, opt *ForkProjectOptions, 
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/fork", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/fork", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
@@ -850,7 +925,7 @@ func (s *ProjectsService) StarProject(pid interface{}, options ...RequestOptionF
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/star", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/star", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
@@ -875,7 +950,7 @@ func (s *ProjectsService) UnstarProject(pid interface{}, options ...RequestOptio
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/unstar", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/unstar", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
@@ -901,7 +976,7 @@ func (s *ProjectsService) ArchiveProject(pid interface{}, options ...RequestOpti
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/archive", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/archive", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
@@ -927,7 +1002,7 @@ func (s *ProjectsService) UnarchiveProject(pid interface{}, options ...RequestOp
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/unarchive", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/unarchive", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
@@ -952,7 +1027,7 @@ func (s *ProjectsService) DeleteProject(pid interface{}, options ...RequestOptio
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s", pathEscape(project))
+	u := fmt.Sprintf("projects/%s", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
@@ -979,7 +1054,7 @@ func (s *ProjectsService) ShareProjectWithGroup(pid interface{}, opt *ShareWithG
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/share", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/share", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
@@ -997,7 +1072,7 @@ func (s *ProjectsService) DeleteSharedProjectFromGroup(pid interface{}, groupID 
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/share/%d", pathEscape(project), groupID)
+	u := fmt.Sprintf("projects/%s/share/%d", PathEscape(project), groupID)
 
 	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
@@ -1063,7 +1138,7 @@ func (s *ProjectsService) ListProjectHooks(pid interface{}, opt *ListProjectHook
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/hooks", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/hooks", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
@@ -1088,7 +1163,7 @@ func (s *ProjectsService) GetProjectHook(pid interface{}, hook int, options ...R
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/hooks/%d", pathEscape(project), hook)
+	u := fmt.Sprintf("projects/%s/hooks/%d", PathEscape(project), hook)
 
 	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
@@ -1136,7 +1211,7 @@ func (s *ProjectsService) AddProjectHook(pid interface{}, opt *AddProjectHookOpt
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/hooks", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/hooks", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
@@ -1184,7 +1259,7 @@ func (s *ProjectsService) EditProjectHook(pid interface{}, hook int, opt *EditPr
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/hooks/%d", pathEscape(project), hook)
+	u := fmt.Sprintf("projects/%s/hooks/%d", PathEscape(project), hook)
 
 	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
@@ -1210,7 +1285,7 @@ func (s *ProjectsService) DeleteProjectHook(pid interface{}, hook int, options .
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/hooks/%d", pathEscape(project), hook)
+	u := fmt.Sprintf("projects/%s/hooks/%d", PathEscape(project), hook)
 
 	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
@@ -1237,8 +1312,12 @@ type ProjectForkRelation struct {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/projects.html#create-a-forked-fromto-relation-between-existing-projects.
-func (s *ProjectsService) CreateProjectForkRelation(pid int, fork int, options ...RequestOptionFunc) (*ProjectForkRelation, *Response, error) {
-	u := fmt.Sprintf("projects/%d/fork/%d", pid, fork)
+func (s *ProjectsService) CreateProjectForkRelation(pid interface{}, fork int, options ...RequestOptionFunc) (*ProjectForkRelation, *Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("projects/%s/fork/%d", PathEscape(project), fork)
 
 	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
@@ -1258,8 +1337,12 @@ func (s *ProjectsService) CreateProjectForkRelation(pid int, fork int, options .
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/projects.html#delete-an-existing-forked-from-relationship
-func (s *ProjectsService) DeleteProjectForkRelation(pid int, options ...RequestOptionFunc) (*Response, error) {
-	u := fmt.Sprintf("projects/%d/fork", pid)
+func (s *ProjectsService) DeleteProjectForkRelation(pid interface{}, options ...RequestOptionFunc) (*Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, err
+	}
+	u := fmt.Sprintf("projects/%s/fork", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
@@ -1269,7 +1352,7 @@ func (s *ProjectsService) DeleteProjectForkRelation(pid int, options ...RequestO
 	return s.client.Do(req, nil)
 }
 
-// ProjectFile represents an uploaded project file
+// ProjectFile represents an uploaded project file.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/projects.html#upload-a-file
 type ProjectFile struct {
@@ -1278,57 +1361,69 @@ type ProjectFile struct {
 	Markdown string `json:"markdown"`
 }
 
-// UploadFile upload a file from disk
+// UploadFile uploads a file.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/projects.html#upload-a-file
-func (s *ProjectsService) UploadFile(pid interface{}, file string, options ...RequestOptionFunc) (*ProjectFile, *Response, error) {
+func (s *ProjectsService) UploadFile(pid interface{}, content io.Reader, filename string, options ...RequestOptionFunc) (*ProjectFile, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/uploads", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/uploads", PathEscape(project))
 
-	f, err := os.Open(file)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer f.Close()
-
-	b := &bytes.Buffer{}
-	w := multipart.NewWriter(b)
-
-	_, filename := filepath.Split(file)
-	fw, err := w.CreateFormFile("file", filename)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	_, err = io.Copy(fw, f)
-	if err != nil {
-		return nil, nil, err
-	}
-	w.Close()
-
-	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
+	req, err := s.client.UploadRequest(
+		http.MethodPost,
+		u,
+		content,
+		filename,
+		UploadFile,
+		nil,
+		options,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Set the buffer as the request body.
-	if err = req.SetBody(b); err != nil {
-		return nil, nil, err
-	}
-
-	// Overwrite the default content type.
-	req.Header.Set("Content-Type", w.FormDataContentType())
-
-	uf := &ProjectFile{}
-	resp, err := s.client.Do(req, uf)
+	pf := new(ProjectFile)
+	resp, err := s.client.Do(req, pf)
 	if err != nil {
 		return nil, resp, err
 	}
 
-	return uf, resp, nil
+	return pf, resp, nil
+}
+
+// UploadAvatar uploads an avatar.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/projects.html#upload-a-project-avatar
+func (s *ProjectsService) UploadAvatar(pid interface{}, avatar io.Reader, filename string, options ...RequestOptionFunc) (*Project, *Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("projects/%s", PathEscape(project))
+
+	req, err := s.client.UploadRequest(
+		http.MethodPut,
+		u,
+		avatar,
+		filename,
+		UploadAvatar,
+		nil,
+		options,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	p := new(Project)
+	resp, err := s.client.Do(req, p)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return p, resp, err
 }
 
 // ListProjectForks gets a list of project forks.
@@ -1340,7 +1435,7 @@ func (s *ProjectsService) ListProjectForks(pid interface{}, opt *ListProjectsOpt
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/forks", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/forks", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
@@ -1386,7 +1481,7 @@ func (s *ProjectsService) GetProjectPushRules(pid interface{}, options ...Reques
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/push_rule", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/push_rule", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
@@ -1430,7 +1525,7 @@ func (s *ProjectsService) AddProjectPushRule(pid interface{}, opt *AddProjectPus
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/push_rule", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/push_rule", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
@@ -1474,7 +1569,7 @@ func (s *ProjectsService) EditProjectPushRule(pid interface{}, opt *EditProjectP
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/push_rule", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/push_rule", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
@@ -1501,7 +1596,7 @@ func (s *ProjectsService) DeleteProjectPushRule(pid interface{}, options ...Requ
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/push_rule", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/push_rule", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
@@ -1535,7 +1630,7 @@ func (s *ProjectsService) GetApprovalConfiguration(pid interface{}, options ...R
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/approvals", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/approvals", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
@@ -1574,7 +1669,7 @@ func (s *ProjectsService) ChangeApprovalConfiguration(pid interface{}, opt *Chan
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/approvals", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/approvals", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
@@ -1599,7 +1694,7 @@ func (s *ProjectsService) GetProjectApprovalRules(pid interface{}, options ...Re
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/approval_rules", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/approval_rules", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
@@ -1622,10 +1717,10 @@ func (s *ProjectsService) GetProjectApprovalRules(pid interface{}, options ...Re
 // https://docs.gitlab.com/ee/api/merge_request_approvals.html#create-project-level-rules
 type CreateProjectLevelRuleOptions struct {
 	ApprovalsRequired  *int    `url:"approvals_required,omitempty" json:"approvals_required,omitempty"`
-	GroupIDs           []int   `url:"group_ids,omitempty" json:"group_ids,omitempty"`
+	GroupIDs           *[]int  `url:"group_ids,omitempty" json:"group_ids,omitempty"`
 	Name               *string `url:"name,omitempty" json:"name,omitempty"`
-	ProtectedBranchIDs []int   `url:"protected_branch_ids,omitempty" json:"protected_branch_ids,omitempty"`
-	UserIDs            []int   `url:"user_ids,omitempty" json:"user_ids,omitempty"`
+	ProtectedBranchIDs *[]int  `url:"protected_branch_ids,omitempty" json:"protected_branch_ids,omitempty"`
+	UserIDs            *[]int  `url:"user_ids,omitempty" json:"user_ids,omitempty"`
 }
 
 // CreateProjectApprovalRule creates a new project-level approval rule.
@@ -1637,7 +1732,7 @@ func (s *ProjectsService) CreateProjectApprovalRule(pid interface{}, opt *Create
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/approval_rules", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/approval_rules", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
@@ -1660,10 +1755,10 @@ func (s *ProjectsService) CreateProjectApprovalRule(pid interface{}, opt *Create
 // https://docs.gitlab.com/ee/api/merge_request_approvals.html#update-project-level-rules
 type UpdateProjectLevelRuleOptions struct {
 	ApprovalsRequired  *int    `url:"approvals_required,omitempty" json:"approvals_required,omitempty"`
-	GroupIDs           []int   `url:"group_ids,omitempty" json:"group_ids,omitempty"`
+	GroupIDs           *[]int  `url:"group_ids,omitempty" json:"group_ids,omitempty"`
 	Name               *string `url:"name,omitempty" json:"name,omitempty"`
-	ProtectedBranchIDs []int   `url:"protected_branch_ids,omitempty" json:"protected_branch_ids,omitempty"`
-	UserIDs            []int   `url:"user_ids,omitempty" json:"user_ids,omitempty"`
+	ProtectedBranchIDs *[]int  `url:"protected_branch_ids,omitempty" json:"protected_branch_ids,omitempty"`
+	UserIDs            *[]int  `url:"user_ids,omitempty" json:"user_ids,omitempty"`
 }
 
 // UpdateProjectApprovalRule updates an existing approval rule with new options.
@@ -1675,7 +1770,7 @@ func (s *ProjectsService) UpdateProjectApprovalRule(pid interface{}, approvalRul
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/approval_rules/%d", pathEscape(project), approvalRule)
+	u := fmt.Sprintf("projects/%s/approval_rules/%d", PathEscape(project), approvalRule)
 
 	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
@@ -1700,7 +1795,7 @@ func (s *ProjectsService) DeleteProjectApprovalRule(pid interface{}, approvalRul
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/approval_rules/%d", pathEscape(project), approvalRule)
+	u := fmt.Sprintf("projects/%s/approval_rules/%d", PathEscape(project), approvalRule)
 
 	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
@@ -1716,8 +1811,8 @@ func (s *ProjectsService) DeleteProjectApprovalRule(pid interface{}, approvalRul
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/merge_request_approvals.html#change-allowed-approvers
 type ChangeAllowedApproversOptions struct {
-	ApproverGroupIDs []int `url:"approver_group_ids,omitempty" json:"approver_group_ids,omitempty"`
-	ApproverIDs      []int `url:"approver_ids,omitempty" json:"approver_ids,omitempty"`
+	ApproverGroupIDs *[]int `url:"approver_group_ids,omitempty" json:"approver_group_ids,omitempty"`
+	ApproverIDs      *[]int `url:"approver_ids,omitempty" json:"approver_ids,omitempty"`
 }
 
 // ChangeAllowedApprovers updates the list of approvers and approver groups.
@@ -1729,7 +1824,7 @@ func (s *ProjectsService) ChangeAllowedApprovers(pid interface{}, opt *ChangeAll
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/approvers", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/approvers", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
@@ -1754,7 +1849,7 @@ func (s *ProjectsService) StartMirroringProject(pid interface{}, options ...Requ
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/mirror/pull", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/mirror/pull", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
@@ -1784,7 +1879,7 @@ func (s *ProjectsService) TransferProject(pid interface{}, opt *TransferProjectO
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/transfer", pathEscape(project))
+	u := fmt.Sprintf("projects/%s/transfer", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
