@@ -392,10 +392,11 @@ func (s *UsersService) SetUserStatus(opt *UserStatusOptions, options ...RequestO
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/users.html#list-ssh-keys
 type SSHKey struct {
-	ID        int        `json:"id"`
-	Title     string     `json:"title"`
-	Key       string     `json:"key"`
-	CreatedAt *time.Time `json:"created_at"`
+	ID        int      `json:"id"`
+	Title     string   `json:"title"`
+	Key       string   `json:"key"`
+	CreatedAt *ISOTime `json:"created_at"`
+	ExpiresAt *ISOTime `json:"expires_at"`
 }
 
 // ListSSHKeys gets a list of currently authenticated user's SSH keys.
@@ -422,13 +423,16 @@ func (s *UsersService) ListSSHKeys(options ...RequestOptionFunc) ([]*SSHKey, *Re
 // https://docs.gitlab.com/ce/api/users.html#list-ssh-keys-for-user
 type ListSSHKeysForUserOptions ListOptions
 
-// ListSSHKeysForUser gets a list of a specified user's SSH keys. Available
-// only for admin
+// ListSSHKeysForUser gets a list of a specified user's SSH keys.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ce/api/users.html#list-ssh-keys-for-user
-func (s *UsersService) ListSSHKeysForUser(user int, opt *ListSSHKeysForUserOptions, options ...RequestOptionFunc) ([]*SSHKey, *Response, error) {
-	u := fmt.Sprintf("users/%d/keys", user)
+func (s *UsersService) ListSSHKeysForUser(uid interface{}, opt *ListSSHKeysForUserOptions, options ...RequestOptionFunc) ([]*SSHKey, *Response, error) {
+	user, err := parseID(uid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("users/%s/keys", user)
 
 	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
