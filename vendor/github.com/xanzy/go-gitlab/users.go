@@ -392,11 +392,11 @@ func (s *UsersService) SetUserStatus(opt *UserStatusOptions, options ...RequestO
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/users.html#list-ssh-keys
 type SSHKey struct {
-	ID        int      `json:"id"`
-	Title     string   `json:"title"`
-	Key       string   `json:"key"`
-	CreatedAt *ISOTime `json:"created_at"`
-	ExpiresAt *ISOTime `json:"expires_at"`
+	ID        int        `json:"id"`
+	Title     string     `json:"title"`
+	Key       string     `json:"key"`
+	CreatedAt *time.Time `json:"created_at"`
+	ExpiresAt *time.Time `json:"expires_at"`
 }
 
 // ListSSHKeys gets a list of currently authenticated user's SSH keys.
@@ -453,6 +453,26 @@ func (s *UsersService) ListSSHKeysForUser(uid interface{}, opt *ListSSHKeysForUs
 // GitLab API docs: https://docs.gitlab.com/ce/api/users.html#single-ssh-key
 func (s *UsersService) GetSSHKey(key int, options ...RequestOptionFunc) (*SSHKey, *Response, error) {
 	u := fmt.Sprintf("user/keys/%d", key)
+
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	k := new(SSHKey)
+	resp, err := s.client.Do(req, k)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return k, resp, err
+}
+
+// GetSSHKeyForUser gets a single key for a given user.
+//
+// GitLab API docs: https://docs.gitlab.com/ee/api/users.html#single-ssh-key-for-given-user
+func (s *UsersService) GetSSHKeyForUser(user int, key int, options ...RequestOptionFunc) (*SSHKey, *Response, error) {
+	u := fmt.Sprintf("users/%d/keys/%d", user, key)
 
 	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
@@ -914,6 +934,58 @@ func (s *UsersService) UnblockUser(user int, options ...RequestOptionFunc) error
 		return nil
 	case 403:
 		return ErrUserUnblockPrevented
+	case 404:
+		return ErrUserNotFound
+	default:
+		return fmt.Errorf("Received unexpected result code: %d", resp.StatusCode)
+	}
+}
+
+// BanUser bans the specified user. Available only for admin.
+//
+// GitLab API docs: https://docs.gitlab.com/ce/api/users.html#ban-user
+func (s *UsersService) BanUser(user int, options ...RequestOptionFunc) error {
+	u := fmt.Sprintf("users/%d/ban", user)
+
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
+	if err != nil {
+		return err
+	}
+
+	resp, err := s.client.Do(req, nil)
+	if err != nil && resp == nil {
+		return err
+	}
+
+	switch resp.StatusCode {
+	case 201:
+		return nil
+	case 404:
+		return ErrUserNotFound
+	default:
+		return fmt.Errorf("Received unexpected result code: %d", resp.StatusCode)
+	}
+}
+
+// UnbanUser unbans the specified user. Available only for admin.
+//
+// GitLab API docs: https://docs.gitlab.com/ce/api/users.html#unban-user
+func (s *UsersService) UnbanUser(user int, options ...RequestOptionFunc) error {
+	u := fmt.Sprintf("users/%d/unban", user)
+
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
+	if err != nil {
+		return err
+	}
+
+	resp, err := s.client.Do(req, nil)
+	if err != nil && resp == nil {
+		return err
+	}
+
+	switch resp.StatusCode {
+	case 201:
+		return nil
 	case 404:
 		return ErrUserNotFound
 	default:
