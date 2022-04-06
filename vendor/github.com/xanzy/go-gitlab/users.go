@@ -99,6 +99,7 @@ type User struct {
 	ExtraSharedRunnersMinutesLimit int                `json:"extra_shared_runners_minutes_limit"`
 	UsingLicenseSeat               bool               `json:"using_license_seat"`
 	CustomAttributes               []*CustomAttribute `json:"custom_attributes"`
+	NamespaceID                    int                `json:"namespace_id"`
 }
 
 // UserIdentity represents a user identity.
@@ -249,6 +250,7 @@ type ModifyUserOptions struct {
 	External           *bool   `url:"external,omitempty" json:"external,omitempty"`
 	PrivateProfile     *bool   `url:"private_profile,omitempty" json:"private_profile,omitempty"`
 	Note               *string `url:"note,omitempty" json:"note,omitempty"`
+	PublicEmail        *string `url:"public_email,omitempty" json:"public_email,omitempty"`
 }
 
 // ModifyUser modifies an existing user. Only administrators can change attributes
@@ -1219,22 +1221,6 @@ func (s *UsersService) RevokeImpersonationToken(user, token int, options ...Requ
 	}
 
 	return s.client.Do(req, nil)
-}
-
-// PersonalAccessToken represents a personal access token.
-//
-// GitLab API docs:
-// https://docs.gitlab.com/ee/api/users.html#create-a-personal-access-token
-type PersonalAccessToken struct {
-	ID        int        `json:"id"`
-	Name      string     `json:"name"`
-	Revoked   bool       `json:"revoked"`
-	CreatedAt *time.Time `json:"created_at"`
-	Scopes    []string   `json:"scopes"`
-	UserID    int        `json:"user_id"`
-	Active    bool       `json:"active"`
-	ExpiresAt *ISOTime   `json:"expires_at"`
-	Token     string     `json:"token"`
 }
 
 // CreatePersonalAccessTokenOptions represents the available
