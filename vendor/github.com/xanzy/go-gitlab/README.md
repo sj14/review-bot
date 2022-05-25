@@ -31,6 +31,7 @@ to add new and/or missing endpoints. Currently, the following services are suppo
 - [x] Environments
 - [x] Epic Issues
 - [x] Epics
+- [x] Error Tracking
 - [x] Events
 - [x] Feature Flags
 - [x] Geo Nodes
@@ -90,6 +91,7 @@ to add new and/or missing endpoints. Currently, the following services are suppo
 - [x] System Hooks
 - [x] Tags
 - [x] Todos
+- [x] Topics
 - [x] Users
 - [x] Validate CI Configuration
 - [x] Version
