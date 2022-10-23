@@ -13,8 +13,16 @@ This tool is still **beta**. The usage with Gitlab and Mattermost is more mature
 
 ## Installation
 
-```text
-go get -u github.com/sj14/review-bot
+### Precompiled Binaries
+
+See the [releases](https://github.com/sj14/review-bot/releases) page for precompiled binaries.
+
+### Manually
+
+It's also possible to install the latest release with `go install`:
+
+```bash
+go install github.com/sj14/review-bot
 ```
 
 ## Example
