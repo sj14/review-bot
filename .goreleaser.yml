@@ -1,0 +1,33 @@
+# This is an example goreleaser.yaml file with some sane defaults.
+# Make sure to check the documentation at http://goreleaser.com
+project_name: review-bot
+
+before:
+  hooks:
+    - go mod download
+builds:
+  - main: ./main.go
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+archives:
+  - format: binary
+checksum:
+  name_template: "checksums.txt"
+snapshot:
+  name_template: "{{ .Tag }}-next-{{.Commit}}"
+
+release:
+  github:
+    owner: sj14
+    name: review-bot
+  disable: false
+  draft: false
+  prerelease: auto
+changelog:
+  filters:
+    exclude:
+      - typo
