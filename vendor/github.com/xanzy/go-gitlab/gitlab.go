@@ -137,12 +137,14 @@ type Client struct {
 	GroupAccessTokens            *GroupAccessTokensService
 	GroupBadges                  *GroupBadgesService
 	GroupCluster                 *GroupClustersService
+	GroupEpicBoards              *GroupEpicBoardsService
 	GroupImportExport            *GroupImportExportService
 	GroupIssueBoards             *GroupIssueBoardsService
 	GroupIterations              *GroupIterationsService
 	GroupLabels                  *GroupLabelsService
 	GroupMembers                 *GroupMembersService
 	GroupMilestones              *GroupMilestonesService
+	GroupRepositoryStorageMove   *GroupRepositoryStorageMoveService
 	GroupVariables               *GroupVariablesService
 	GroupWikis                   *GroupWikisService
 	Groups                       *GroupsService
@@ -356,12 +358,14 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	c.GroupAccessTokens = &GroupAccessTokensService{client: c}
 	c.GroupBadges = &GroupBadgesService{client: c}
 	c.GroupCluster = &GroupClustersService{client: c}
+	c.GroupEpicBoards = &GroupEpicBoardsService{client: c}
 	c.GroupImportExport = &GroupImportExportService{client: c}
 	c.GroupIssueBoards = &GroupIssueBoardsService{client: c}
 	c.GroupIterations = &GroupIterationsService{client: c}
 	c.GroupLabels = &GroupLabelsService{client: c}
 	c.GroupMembers = &GroupMembersService{client: c}
 	c.GroupMilestones = &GroupMilestonesService{client: c}
+	c.GroupRepositoryStorageMove = &GroupRepositoryStorageMoveService{client: c}
 	c.GroupVariables = &GroupVariablesService{client: c}
 	c.GroupWikis = &GroupWikisService{client: c}
 	c.Groups = &GroupsService{client: c}
