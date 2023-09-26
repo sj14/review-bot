@@ -77,6 +77,7 @@ type ListCommitsOptions struct {
 	Since       *time.Time `url:"since,omitempty" json:"since,omitempty"`
 	Until       *time.Time `url:"until,omitempty" json:"until,omitempty"`
 	Path        *string    `url:"path,omitempty" json:"path,omitempty"`
+	Author      *string    `url:"author,omitempty" json:"author,omitempty"`
 	All         *bool      `url:"all,omitempty" json:"all,omitempty"`
 	WithStats   *bool      `url:"with_stats,omitempty" json:"with_stats,omitempty"`
 	FirstParent *bool      `url:"first_parent,omitempty" json:"first_parent,omitempty"`
@@ -402,6 +403,7 @@ type CommitStatus struct {
 	Name         string     `json:"name"`
 	AllowFailure bool       `json:"allow_failure"`
 	Coverage     float64    `json:"coverage"`
+	PipelineId   int        `json:"pipeline_id"`
 	Author       Author     `json:"author"`
 	Description  string     `json:"description"`
 	TargetURL    string     `json:"target_url"`
