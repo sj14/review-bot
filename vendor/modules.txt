@@ -23,7 +23,7 @@ github.com/pmezard/go-difflib/difflib
 ## explicit; go 1.17
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
-# github.com/xanzy/go-gitlab v0.100.0
+# github.com/xanzy/go-gitlab v0.101.0
 ## explicit; go 1.19
 github.com/xanzy/go-gitlab
 # golang.org/x/net v0.22.0
