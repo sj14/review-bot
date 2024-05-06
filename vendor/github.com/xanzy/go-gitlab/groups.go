@@ -123,8 +123,9 @@ type LDAPGroupLink struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ee/api/groups.html#saml-group-links
 type SAMLGroupLink struct {
-	Name        string           `json:"name"`
-	AccessLevel AccessLevelValue `json:"access_level"`
+	Name         string           `json:"name"`
+	AccessLevel  AccessLevelValue `json:"access_level"`
+	MemberRoleID int              `json:"member_role_id,omitempty"`
 }
 
 // ListGroupsOptions represents the available ListGroups() options.
@@ -999,6 +1000,7 @@ type GroupPushRules struct {
 	FileNameRegex              string     `json:"file_name_regex"`
 	MaxFileSize                int        `json:"max_file_size"`
 	CommitCommitterCheck       bool       `json:"commit_committer_check"`
+	CommitCommitterNameCheck   bool       `json:"commit_committer_name_check"`
 	RejectUnsignedCommits      bool       `json:"reject_unsigned_commits"`
 }
 
@@ -1036,6 +1038,7 @@ type AddGroupPushRuleOptions struct {
 	AuthorEmailRegex           *string `url:"author_email_regex,omitempty" json:"author_email_regex,omitempty"`
 	BranchNameRegex            *string `url:"branch_name_regex,omitempty" json:"branch_name_regex,omitempty"`
 	CommitCommitterCheck       *bool   `url:"commit_committer_check,omitempty" json:"commit_committer_check,omitempty"`
+	CommitCommitterNameCheck   *bool   `url:"commit_committer_name_check,omitempty" json:"commit_committer_name_check,omitempty"`
 	CommitMessageNegativeRegex *string `url:"commit_message_negative_regex,omitempty" json:"commit_message_negative_regex,omitempty"`
 	CommitMessageRegex         *string `url:"commit_message_regex,omitempty" json:"commit_message_regex,omitempty"`
 	DenyDeleteTag              *bool   `url:"deny_delete_tag,omitempty" json:"deny_delete_tag,omitempty"`
@@ -1080,6 +1083,7 @@ type EditGroupPushRuleOptions struct {
 	AuthorEmailRegex           *string `url:"author_email_regex,omitempty" json:"author_email_regex,omitempty"`
 	BranchNameRegex            *string `url:"branch_name_regex,omitempty" json:"branch_name_regex,omitempty"`
 	CommitCommitterCheck       *bool   `url:"commit_committer_check,omitempty" json:"commit_committer_check,omitempty"`
+	CommitCommitterNameCheck   *bool   `url:"commit_committer_name_check,omitempty" json:"commit_committer_name_check,omitempty"`
 	CommitMessageNegativeRegex *string `url:"commit_message_negative_regex,omitempty" json:"commit_message_negative_regex,omitempty"`
 	CommitMessageRegex         *string `url:"commit_message_regex,omitempty" json:"commit_message_regex,omitempty"`
 	DenyDeleteTag              *bool   `url:"deny_delete_tag,omitempty" json:"deny_delete_tag,omitempty"`
