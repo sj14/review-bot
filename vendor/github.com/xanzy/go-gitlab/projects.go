@@ -83,6 +83,7 @@ type Project struct {
 	StarCount                                 int                        `json:"star_count"`
 	RunnersToken                              string                     `json:"runners_token"`
 	AllowMergeOnSkippedPipeline               bool                       `json:"allow_merge_on_skipped_pipeline"`
+	AllowPipelineTriggerApproveDeployment     bool                       `json:"allow_pipeline_trigger_approve_deployment"`
 	OnlyAllowMergeIfPipelineSucceeds          bool                       `json:"only_allow_merge_if_pipeline_succeeds"`
 	OnlyAllowMergeIfAllDiscussionsAreResolved bool                       `json:"only_allow_merge_if_all_discussions_are_resolved"`
 	RemoveSourceBranchAfterMerge              bool                       `json:"remove_source_branch_after_merge"`
@@ -1159,18 +1160,28 @@ func (s *ProjectsService) UnarchiveProject(pid interface{}, options ...RequestOp
 	return p, resp, nil
 }
 
+// DeleteProjectOptions represents the available DeleteProject() options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/projects.html#delete-project
+type DeleteProjectOptions struct {
+	FullPath          *string `url:"full_path" json:"full_path"`
+	PermanentlyRemove *bool   `url:"permanently_remove" json:"permanently_remove"`
+}
+
 // DeleteProject removes a project including all associated resources
 // (issues, merge requests etc.)
 //
-// GitLab API docs: https://docs.gitlab.com/ee/api/projects.html#delete-project
-func (s *ProjectsService) DeleteProject(pid interface{}, options ...RequestOptionFunc) (*Response, error) {
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/projects.html#delete-project
+func (s *ProjectsService) DeleteProject(pid interface{}, opt *DeleteProjectOptions, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
 		return nil, err
 	}
 	u := fmt.Sprintf("projects/%s", PathEscape(project))
 
-	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, opt, options)
 	if err != nil {
 		return nil, err
 	}
@@ -1178,7 +1189,7 @@ func (s *ProjectsService) DeleteProject(pid interface{}, options ...RequestOptio
 	return s.client.Do(req, nil)
 }
 
-// ShareWithGroupOptions represents options to share project with groups
+// ShareWithGroupOptions represents the available SharedWithGroup() options.
 //
 // GitLab API docs: https://docs.gitlab.com/ee/api/projects.html#share-project-with-group
 type ShareWithGroupOptions struct {
@@ -1481,8 +1492,8 @@ func (s *ProjectsService) TriggerTestProjectHook(pid interface{}, hook int, even
 	return s.client.Do(req, nil)
 }
 
-// SetHookCustomHeaderOptions represents a project or group hook custom header.
-// If the header isn't present, it will be created.
+// SetHookCustomHeaderOptions represents the available SetProjectCustomHeader()
+// options.
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/projects.html#set-a-custom-header
@@ -1927,9 +1938,11 @@ func (s *ProjectsService) ChangeApprovalConfiguration(pid interface{}, opt *Chan
 	return pa, resp, nil
 }
 
-// GetProjectApprovalRulesListsOptions represents the available GetProjectApprovalRules() options.
+// GetProjectApprovalRulesListsOptions represents the available
+// GetProjectApprovalRules() options.
 //
-// GitLab API docs: https://docs.gitlab.com/ee/api/merge_request_approvals.html#get-project-level-rules
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/merge_request_approvals.html#get-project-level-rules
 type GetProjectApprovalRulesListsOptions ListOptions
 
 // GetProjectApprovalRules looks up the list of project level approver rules.
@@ -2182,7 +2195,8 @@ func (s *ProjectsService) StartMirroringProject(pid interface{}, options ...Requ
 
 // TransferProjectOptions represents the available TransferProject() options.
 //
-// GitLab API docs: https://docs.gitlab.com/ee/api/projects.html#transfer-a-project-to-a-new-namespace
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/projects.html#transfer-a-project-to-a-new-namespace
 type TransferProjectOptions struct {
 	Namespace interface{} `url:"namespace,omitempty" json:"namespace,omitempty"`
 }
