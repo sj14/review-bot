@@ -2,7 +2,7 @@ module github.com/sj14/review-bot
 
 require (
 	github.com/google/go-github/v25 v25.1.3
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.0
 	github.com/xanzy/go-gitlab v0.115.0
 	golang.org/x/oauth2 v0.30.0
 )
@@ -17,4 +17,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-go 1.19
+go 1.23.0
