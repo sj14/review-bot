@@ -4,7 +4,7 @@ require (
 	github.com/google/go-github/v25 v25.1.3
 	github.com/stretchr/testify v1.11.1
 	github.com/xanzy/go-gitlab v0.115.0
-	golang.org/x/oauth2 v0.30.0
+	golang.org/x/oauth2 v0.31.0
 )
 
 require (
@@ -17,4 +17,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-go 1.23.0
+go 1.24.0
