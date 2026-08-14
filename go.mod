@@ -1,3 +1,5 @@
+go 1.26.0
+
 module github.com/sj14/review-bot
 
 require (
@@ -16,5 +18,3 @@ require (
 	golang.org/x/time v0.15.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-go 1.25.0
