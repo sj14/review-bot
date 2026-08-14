@@ -91,6 +91,10 @@ func aggregate(git clientWrapper, repo interface{}, reviewers map[string]string)
 // responsiblePerson returns the mattermost name of the assignee or author of the MR
 // (fallback: gitlab author name)
 func responsiblePerson(mr *gitlab.MergeRequest, reviewers map[string]string) string {
+	if mr == nil {
+		return ""
+	}
+
 	if mr.Assignee != nil && mr.Assignee.Username != "" {
 		if assignee, ok := reviewers[mr.Assignee.Username]; ok {
 			return assignee
@@ -159,7 +163,7 @@ const (
 func getReviewed(mr *gitlab.MergeRequest, emojis []*gitlab.AwardEmoji) []string {
 	var reviewedBy []string
 
-	if mr.Author != nil {
+	if mr != nil && mr.Author != nil {
 		reviewedBy = append(reviewedBy, mr.Author.Username)
 	}
 
