@@ -2,18 +2,20 @@ package gitlab
 
 import (
 	"fmt"
-	"log"
 	"net/http"
+	"time"
 
 	"gitlab.com/gitlab-org/api/client-go/v2"
 )
 
+const httpTimeout = 30 * time.Second
+
 //go:generate moq -out client_moq_test.go . clientWrapper
 type clientWrapper interface {
-	loadProject(repo interface{}) gitlab.Project
-	loadMRs(repo interface{}) []*gitlab.BasicMergeRequest
-	loadEmojis(repo interface{}, mr *gitlab.BasicMergeRequest) []*gitlab.AwardEmoji
-	loadDiscussions(repo interface{}, mr *gitlab.BasicMergeRequest) []*gitlab.Discussion
+	loadProject(repo interface{}) (gitlab.Project, error)
+	loadMRs(repo interface{}) ([]*gitlab.BasicMergeRequest, error)
+	loadEmojis(repo interface{}, mr *gitlab.BasicMergeRequest) ([]*gitlab.AwardEmoji, error)
+	loadDiscussions(repo interface{}, mr *gitlab.BasicMergeRequest) ([]*gitlab.Discussion, error)
 }
 
 type client struct {
@@ -21,29 +23,33 @@ type client struct {
 }
 
 // newClient returns a new gitlab client.
-func newClient(host, token string) *client {
-	c, err := gitlab.NewClient(token, gitlab.WithBaseURL(fmt.Sprintf("https://%s/api/v4", host)))
+func newClient(host, token string) (*client, error) {
+	c, err := gitlab.NewClient(
+		token,
+		gitlab.WithBaseURL(fmt.Sprintf("https://%s/api/v4", host)),
+		gitlab.WithHTTPClient(&http.Client{Timeout: httpTimeout}),
+	)
 	if err != nil {
-		log.Fatalf("failed creating new giltab client: %v\n", err)
+		return nil, fmt.Errorf("failed creating new gitlab client: %w", err)
 	}
 
-	return &client{original: c}
+	return &client{original: c}, nil
 }
 
-func (c *client) loadProject(repo interface{}) gitlab.Project {
+func (c *client) loadProject(repo interface{}) (gitlab.Project, error) {
 	p, resp, err := c.original.Projects.GetProject(repo, nil)
 	if err != nil {
-		log.Fatalf("failed to get project: %v", err)
+		return gitlab.Project{}, fmt.Errorf("failed to get project: %w", err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		log.Fatalf("failed to get project, status code: %v", resp.StatusCode)
+		return gitlab.Project{}, fmt.Errorf("failed to get project, status code: %v", resp.StatusCode)
 	}
 
-	return *p
+	return *p, nil
 }
 
 // openMergeRequests returns all open merge requests of the given project.
-func (c *client) loadMRs(repo interface{}) []*gitlab.BasicMergeRequest {
+func (c *client) loadMRs(repo interface{}) ([]*gitlab.BasicMergeRequest, error) {
 	var (
 		mergeRequests []*gitlab.BasicMergeRequest
 		state         = "opened"
@@ -56,10 +62,10 @@ func (c *client) loadMRs(repo interface{}) []*gitlab.BasicMergeRequest {
 	for {
 		pageMRs, resp, err := c.original.MergeRequests.ListProjectMergeRequests(repo, opts)
 		if err != nil {
-			log.Fatalf("failed to list project merge requests: %v", err)
+			return nil, fmt.Errorf("failed to list project merge requests: %w", err)
 		}
 		if resp.StatusCode != http.StatusOK {
-			log.Fatalf("failed to list project merge requests, status code: %v", resp.StatusCode)
+			return nil, fmt.Errorf("failed to list project merge requests, status code: %v", resp.StatusCode)
 		}
 		mergeRequests = append(mergeRequests, pageMRs...)
 		if resp.NextPage == 0 {
@@ -68,11 +74,11 @@ func (c *client) loadMRs(repo interface{}) []*gitlab.BasicMergeRequest {
 		opts.Page = resp.NextPage
 	}
 
-	return mergeRequests
+	return mergeRequests, nil
 }
 
 // loadDiscussions of the given MR.
-func (c *client) loadDiscussions(repo interface{}, mr *gitlab.BasicMergeRequest) []*gitlab.Discussion {
+func (c *client) loadDiscussions(repo interface{}, mr *gitlab.BasicMergeRequest) ([]*gitlab.Discussion, error) {
 	var (
 		discussions []*gitlab.Discussion
 		opts        = &gitlab.ListMergeRequestDiscussionsOptions{ListOptions: gitlab.ListOptions{PerPage: 25}}
@@ -81,10 +87,10 @@ func (c *client) loadDiscussions(repo interface{}, mr *gitlab.BasicMergeRequest)
 	for {
 		pageDiscussions, resp, err := c.original.Discussions.ListMergeRequestDiscussions(repo, mr.IID, opts)
 		if err != nil {
-			log.Fatalf("failed to list emojis for MR %v: %v", mr.IID, err)
+			return nil, fmt.Errorf("failed to list discussions for MR %v: %w", mr.IID, err)
 		}
 		if resp.StatusCode != http.StatusOK {
-			log.Fatalf("failed to list emojis, status code: %v", resp.StatusCode)
+			return nil, fmt.Errorf("failed to list discussions, status code: %v", resp.StatusCode)
 		}
 		discussions = append(discussions, pageDiscussions...)
 		if resp.NextPage == 0 {
@@ -93,11 +99,11 @@ func (c *client) loadDiscussions(repo interface{}, mr *gitlab.BasicMergeRequest)
 		opts.Page = resp.NextPage
 	}
 
-	return discussions
+	return discussions, nil
 }
 
 // loadEmojis returns all emoji reactions of the particular MR.
-func (c *client) loadEmojis(repo interface{}, mr *gitlab.BasicMergeRequest) []*gitlab.AwardEmoji {
+func (c *client) loadEmojis(repo interface{}, mr *gitlab.BasicMergeRequest) ([]*gitlab.AwardEmoji, error) {
 	var (
 		emojis []*gitlab.AwardEmoji
 		opts   = &gitlab.ListAwardEmojiOptions{ListOptions: gitlab.ListOptions{PerPage: 25}}
@@ -106,10 +112,10 @@ func (c *client) loadEmojis(repo interface{}, mr *gitlab.BasicMergeRequest) []*g
 	for {
 		pageEmojis, resp, err := c.original.AwardEmoji.ListMergeRequestAwardEmoji(repo, mr.IID, opts)
 		if err != nil {
-			log.Fatalf("failed to list emojis for MR %v: %v", mr.IID, err)
+			return nil, fmt.Errorf("failed to list emojis for MR %v: %w", mr.IID, err)
 		}
 		if resp.StatusCode != http.StatusOK {
-			log.Fatalf("failed to list emojis, status code: %v", resp.StatusCode)
+			return nil, fmt.Errorf("failed to list emojis, status code: %v", resp.StatusCode)
 		}
 		emojis = append(emojis, pageEmojis...)
 		if resp.NextPage == 0 {
@@ -118,5 +124,5 @@ func (c *client) loadEmojis(repo interface{}, mr *gitlab.BasicMergeRequest) []*g
 		opts.Page = resp.NextPage
 	}
 
-	return emojis
+	return emojis, nil
 }

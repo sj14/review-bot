@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
+	"time"
 )
+
+const httpTimeout = 15 * time.Second
 
 type message struct {
 	User    string `json:"username,omitempty"` // only mattermost(?)
@@ -28,7 +31,7 @@ func Send(channel, text, webhook string) error {
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{}
+	client := &http.Client{Timeout: httpTimeout}
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to send request: %v\n", err)
@@ -44,7 +47,7 @@ func Send(channel, text, webhook string) error {
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := ioutil.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("response status: %v; header: %v; body: %v", resp.Status, resp.Header, string(body))
 	}
 	return nil

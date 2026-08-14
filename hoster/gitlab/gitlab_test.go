@@ -9,24 +9,24 @@ import (
 
 func TestAggregateReminder(t *testing.T) {
 	mockedClient := &clientWrapperMock{
-		loadProjectFunc: func(repo interface{}) gitlab.Project {
-			return gitlab.Project{Name: "mocked project"}
+		loadProjectFunc: func(repo interface{}) (gitlab.Project, error) {
+			return gitlab.Project{Name: "mocked project"}, nil
 		},
-		loadMRsFunc: func(repo interface{}) []*gitlab.BasicMergeRequest {
+		loadMRsFunc: func(repo interface{}) ([]*gitlab.BasicMergeRequest, error) {
 			return []*gitlab.BasicMergeRequest{
 				{Title: "MR0"},
 				{Title: "MR1", Draft: true},
-			}
+			}, nil
 		},
-		loadEmojisFunc: func(repo interface{}, mr *gitlab.BasicMergeRequest) []*gitlab.AwardEmoji {
+		loadEmojisFunc: func(repo interface{}, mr *gitlab.BasicMergeRequest) ([]*gitlab.AwardEmoji, error) {
 			return []*gitlab.AwardEmoji{
 				{Name: thumbsup},
-			}
+			}, nil
 		},
-		loadDiscussionsFunc: func(repo interface{}, mr *gitlab.BasicMergeRequest) []*gitlab.Discussion {
+		loadDiscussionsFunc: func(repo interface{}, mr *gitlab.BasicMergeRequest) ([]*gitlab.Discussion, error) {
 			return []*gitlab.Discussion{
 				{ID: "id0", Notes: []*gitlab.Note{{Resolved: false, Resolvable: true}}},
-			}
+			}, nil
 		},
 	}
 
@@ -38,8 +38,9 @@ func TestAggregateReminder(t *testing.T) {
 		{MR: &gitlab.BasicMergeRequest{Title: "MR0"}, Missing: []string{"Spidy"}, Emojis: map[string]int{"thumbsup": 1}, Discussions: 1},
 	}
 
-	gotP, gotR := aggregate(mockedClient, 2009901, map[string]string{"42": "Spidy"})
+	gotP, gotR, err := aggregate(mockedClient, 2009901, map[string]string{"42": "Spidy"})
 
+	require.NoError(t, err)
 	require.Equal(t, expP, gotP)
 	require.Equal(t, expR, gotR)
 }

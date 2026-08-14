@@ -25,16 +25,16 @@ var _ clientWrapper = &clientWrapperMock{}
 //
 //         // make and configure a mocked clientWrapper
 //         mockedclientWrapper := &clientWrapperMock{
-//             loadDiscussionsFunc: func(repo interface{}, mr *gitlab.BasicMergeRequest) []*gitlab.Discussion {
+//             loadDiscussionsFunc: func(repo interface{}, mr *gitlab.BasicMergeRequest) ([]*gitlab.Discussion, error) {
 // 	               panic("mock out the loadDiscussions method")
 //             },
-//             loadEmojisFunc: func(repo interface{}, mr *gitlab.BasicMergeRequest) []*gitlab.AwardEmoji {
+//             loadEmojisFunc: func(repo interface{}, mr *gitlab.BasicMergeRequest) ([]*gitlab.AwardEmoji, error) {
 // 	               panic("mock out the loadEmojis method")
 //             },
-//             loadMRsFunc: func(repo interface{}) []*gitlab.BasicMergeRequest {
+//             loadMRsFunc: func(repo interface{}) ([]*gitlab.BasicMergeRequest, error) {
 // 	               panic("mock out the loadMRs method")
 //             },
-//             loadProjectFunc: func(repo interface{}) gitlab.Project {
+//             loadProjectFunc: func(repo interface{}) (gitlab.Project, error) {
 // 	               panic("mock out the loadProject method")
 //             },
 //         }
@@ -45,16 +45,16 @@ var _ clientWrapper = &clientWrapperMock{}
 //     }
 type clientWrapperMock struct {
 	// loadDiscussionsFunc mocks the loadDiscussions method.
-	loadDiscussionsFunc func(repo interface{}, mr *gitlab.BasicMergeRequest) []*gitlab.Discussion
+	loadDiscussionsFunc func(repo interface{}, mr *gitlab.BasicMergeRequest) ([]*gitlab.Discussion, error)
 
 	// loadEmojisFunc mocks the loadEmojis method.
-	loadEmojisFunc func(repo interface{}, mr *gitlab.BasicMergeRequest) []*gitlab.AwardEmoji
+	loadEmojisFunc func(repo interface{}, mr *gitlab.BasicMergeRequest) ([]*gitlab.AwardEmoji, error)
 
 	// loadMRsFunc mocks the loadMRs method.
-	loadMRsFunc func(repo interface{}) []*gitlab.BasicMergeRequest
+	loadMRsFunc func(repo interface{}) ([]*gitlab.BasicMergeRequest, error)
 
 	// loadProjectFunc mocks the loadProject method.
-	loadProjectFunc func(repo interface{}) gitlab.Project
+	loadProjectFunc func(repo interface{}) (gitlab.Project, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -86,7 +86,7 @@ type clientWrapperMock struct {
 }
 
 // loadDiscussions calls loadDiscussionsFunc.
-func (mock *clientWrapperMock) loadDiscussions(repo interface{}, mr *gitlab.BasicMergeRequest) []*gitlab.Discussion {
+func (mock *clientWrapperMock) loadDiscussions(repo interface{}, mr *gitlab.BasicMergeRequest) ([]*gitlab.Discussion, error) {
 	if mock.loadDiscussionsFunc == nil {
 		panic("clientWrapperMock.loadDiscussionsFunc: method is nil but clientWrapper.loadDiscussions was just called")
 	}
@@ -121,7 +121,7 @@ func (mock *clientWrapperMock) loadDiscussionsCalls() []struct {
 }
 
 // loadEmojis calls loadEmojisFunc.
-func (mock *clientWrapperMock) loadEmojis(repo interface{}, mr *gitlab.BasicMergeRequest) []*gitlab.AwardEmoji {
+func (mock *clientWrapperMock) loadEmojis(repo interface{}, mr *gitlab.BasicMergeRequest) ([]*gitlab.AwardEmoji, error) {
 	if mock.loadEmojisFunc == nil {
 		panic("clientWrapperMock.loadEmojisFunc: method is nil but clientWrapper.loadEmojis was just called")
 	}
@@ -156,7 +156,7 @@ func (mock *clientWrapperMock) loadEmojisCalls() []struct {
 }
 
 // loadMRs calls loadMRsFunc.
-func (mock *clientWrapperMock) loadMRs(repo interface{}) []*gitlab.BasicMergeRequest {
+func (mock *clientWrapperMock) loadMRs(repo interface{}) ([]*gitlab.BasicMergeRequest, error) {
 	if mock.loadMRsFunc == nil {
 		panic("clientWrapperMock.loadMRsFunc: method is nil but clientWrapper.loadMRs was just called")
 	}
@@ -187,7 +187,7 @@ func (mock *clientWrapperMock) loadMRsCalls() []struct {
 }
 
 // loadProject calls loadProjectFunc.
-func (mock *clientWrapperMock) loadProject(repo interface{}) gitlab.Project {
+func (mock *clientWrapperMock) loadProject(repo interface{}) (gitlab.Project, error) {
 	if mock.loadProjectFunc == nil {
 		panic("clientWrapperMock.loadProjectFunc: method is nil but clientWrapper.loadProject was just called")
 	}

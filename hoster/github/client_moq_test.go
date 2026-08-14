@@ -24,13 +24,13 @@ var _ clientWrapper = &clientWrapperMock{}
 //
 //         // make and configure a mocked clientWrapper
 //         mockedclientWrapper := &clientWrapperMock{
-//             loadPRsFunc: func(owner string, repo string) []*github.PullRequest {
+//             loadPRsFunc: func(owner string, repo string) ([]*github.PullRequest, error) {
 // 	               panic("mock out the loadPRs method")
 //             },
-//             loadRepositoryFunc: func(owner string, repo string) *github.Repository {
+//             loadRepositoryFunc: func(owner string, repo string) (*github.Repository, error) {
 // 	               panic("mock out the loadRepository method")
 //             },
-//             loadReviewsFunc: func(owner string, repo string, number int) []*github.PullRequestReview {
+//             loadReviewsFunc: func(owner string, repo string, number int) ([]*github.PullRequestReview, error) {
 // 	               panic("mock out the loadReviews method")
 //             },
 //         }
@@ -41,13 +41,13 @@ var _ clientWrapper = &clientWrapperMock{}
 //     }
 type clientWrapperMock struct {
 	// loadPRsFunc mocks the loadPRs method.
-	loadPRsFunc func(owner string, repo string) []*github.PullRequest
+	loadPRsFunc func(owner string, repo string) ([]*github.PullRequest, error)
 
 	// loadRepositoryFunc mocks the loadRepository method.
-	loadRepositoryFunc func(owner string, repo string) *github.Repository
+	loadRepositoryFunc func(owner string, repo string) (*github.Repository, error)
 
 	// loadReviewsFunc mocks the loadReviews method.
-	loadReviewsFunc func(owner string, repo string, number int) []*github.PullRequestReview
+	loadReviewsFunc func(owner string, repo string, number int) ([]*github.PullRequestReview, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -78,7 +78,7 @@ type clientWrapperMock struct {
 }
 
 // loadPRs calls loadPRsFunc.
-func (mock *clientWrapperMock) loadPRs(owner string, repo string) []*github.PullRequest {
+func (mock *clientWrapperMock) loadPRs(owner string, repo string) ([]*github.PullRequest, error) {
 	if mock.loadPRsFunc == nil {
 		panic("clientWrapperMock.loadPRsFunc: method is nil but clientWrapper.loadPRs was just called")
 	}
@@ -113,7 +113,7 @@ func (mock *clientWrapperMock) loadPRsCalls() []struct {
 }
 
 // loadRepository calls loadRepositoryFunc.
-func (mock *clientWrapperMock) loadRepository(owner string, repo string) *github.Repository {
+func (mock *clientWrapperMock) loadRepository(owner string, repo string) (*github.Repository, error) {
 	if mock.loadRepositoryFunc == nil {
 		panic("clientWrapperMock.loadRepositoryFunc: method is nil but clientWrapper.loadRepository was just called")
 	}
@@ -148,7 +148,7 @@ func (mock *clientWrapperMock) loadRepositoryCalls() []struct {
 }
 
 // loadReviews calls loadReviewsFunc.
-func (mock *clientWrapperMock) loadReviews(owner string, repo string, number int) []*github.PullRequestReview {
+func (mock *clientWrapperMock) loadReviews(owner string, repo string, number int) ([]*github.PullRequestReview, error) {
 	if mock.loadReviewsFunc == nil {
 		panic("clientWrapperMock.loadReviewsFunc: method is nil but clientWrapper.loadReviews was just called")
 	}

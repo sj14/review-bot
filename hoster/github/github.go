@@ -13,20 +13,33 @@ type reminder struct {
 }
 
 // AggregateReminder will generate the reminder message.
-func AggregateReminder(token, owner, repo string, reviewers map[string]string) (*github.Repository, []reminder) {
-	var (
-		reminders    []reminder
-		git          = newClient(token)
-		repository   = git.loadRepository(owner, repo)
-		pullRequests = git.loadPRs(owner, repo)
-	)
+func AggregateReminder(token, owner, repo string, reviewers map[string]string) (*github.Repository, []reminder, error) {
+	git, err := newClient(token)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	repository, err := git.loadRepository(owner, repo)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pullRequests, err := git.loadPRs(owner, repo)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var reminders []reminder
 
 	for _, pr := range pullRequests {
 		if pr.GetDraft() {
 			continue
 		}
 
-		reviews := git.loadReviews(owner, repo, pr.GetNumber())
+		reviews, err := git.loadReviews(owner, repo, pr.GetNumber())
+		if err != nil {
+			return nil, nil, err
+		}
 
 		reviewedBy := getReviewed(pr, reviews)
 
@@ -40,7 +53,7 @@ func AggregateReminder(token, owner, repo string, reviewers map[string]string) (
 		// TODO: reactions/emojis
 		reminders = append(reminders, reminder{pr, missing, pr.GetComments(), owner, nil})
 	}
-	return repository, reminders
+	return repository, reminders, nil
 }
 
 const (

@@ -2,7 +2,7 @@ package github
 
 import (
 	"bytes"
-	"log"
+	"fmt"
 	"text/template"
 
 	"github.com/google/go-github/v90/github"
@@ -26,7 +26,7 @@ func DefaultTemplate() *template.Template {
 }
 
 // Exec the reminder message for the given merge request.
-func ExecTemplate(template *template.Template, repository *github.Repository, reminders []reminder) string {
+func ExecTemplate(template *template.Template, repository *github.Repository, reminders []reminder) (string, error) {
 	data := struct {
 		Repository *github.Repository
 		Reminders  []reminder
@@ -37,8 +37,8 @@ func ExecTemplate(template *template.Template, repository *github.Repository, re
 	buffer := bytes.NewBuffer([]byte{})
 
 	if err := template.Execute(buffer, data); err != nil {
-		log.Fatalf("failed executing template: %v", err)
+		return "", fmt.Errorf("failed executing template: %w", err)
 	}
 
-	return buffer.String()
+	return buffer.String(), nil
 }

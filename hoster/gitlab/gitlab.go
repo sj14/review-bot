@@ -13,40 +13,28 @@ type reminder struct {
 }
 
 // AggregateReminder will generate the reminder message.
-func AggregateReminder(host, token string, repo interface{}, reviewers map[string]string) (gitlab.Project, []reminder) {
+func AggregateReminder(host, token string, repo interface{}, reviewers map[string]string) (gitlab.Project, []reminder, error) {
 	// setup gitlab client
-	git := newClient(host, token)
+	git, err := newClient(host, token)
+	if err != nil {
+		return gitlab.Project{}, nil, err
+	}
 
-	project, reminders := aggregate(git, repo, reviewers)
-
-	// prevent from sending the header only
-	// if len(reminders) == 0 {
-	// 	return ""
-	// }
-
-	return project, reminders
+	return aggregate(git, repo, reviewers)
 }
 
-// func AggregateUsersReminder(host, token string, repo interface{}, reviewers map[string]string, template *template.Template) string {
-// 	// setup gitlab client
-// 	git := newClient(host, token)
-
-// 	project, reminders := aggregate(git, repo, reviewers)
-
-// 	// prevent from sending the header only
-// 	if len(reminders) == 0 {
-// 		return ""
-// 	}
-
-// 	return ExecTemplate(template, project, reminders)
-// }
-
 // helper functions for easier testability (mocked gitlab client)
-func aggregate(git clientWrapper, repo interface{}, reviewers map[string]string) (gitlab.Project, []reminder) {
-	project := git.loadProject(repo)
+func aggregate(git clientWrapper, repo interface{}, reviewers map[string]string) (gitlab.Project, []reminder, error) {
+	project, err := git.loadProject(repo)
+	if err != nil {
+		return gitlab.Project{}, nil, err
+	}
 
 	// get open merge requests
-	mergeRequests := git.loadMRs(repo)
+	mergeRequests, err := git.loadMRs(repo)
+	if err != nil {
+		return gitlab.Project{}, nil, err
+	}
 
 	// TODO: add option
 	// only return merge requests which have no open discussions
@@ -62,7 +50,10 @@ func aggregate(git clientWrapper, repo interface{}, reviewers map[string]string)
 		}
 
 		// load all emojis awarded to the mr
-		emojis := git.loadEmojis(repo, mr)
+		emojis, err := git.loadEmojis(repo, mr)
+		if err != nil {
+			return gitlab.Project{}, nil, err
+		}
 
 		// check who gave thumbs up/down (or "sleeping")
 		reviewedBy := getReviewed(mr, emojis)
@@ -71,7 +62,10 @@ func aggregate(git clientWrapper, repo interface{}, reviewers map[string]string)
 		missing := missingReviewers(reviewedBy, reviewers)
 
 		// load all discussions of the mr
-		discussions := git.loadDiscussions(repo, mr)
+		discussions, err := git.loadDiscussions(repo, mr)
+		if err != nil {
+			return gitlab.Project{}, nil, err
+		}
 
 		// get the number of open discussions
 		discussionsCount := openDiscussionsCount(discussions)
@@ -85,7 +79,7 @@ func aggregate(git clientWrapper, repo interface{}, reviewers map[string]string)
 		reminders = append(reminders, reminder{mr, missing, discussionsCount, owner, emojisAggr})
 	}
 
-	return project, reminders
+	return project, reminders, nil
 }
 
 // responsiblePerson returns the mattermost name of the assignee or author of the MR

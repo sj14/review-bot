@@ -2,7 +2,7 @@ package gitlab
 
 import (
 	"bytes"
-	"log"
+	"fmt"
 	"text/template"
 
 	"gitlab.com/gitlab-org/api/client-go/v2"
@@ -26,7 +26,7 @@ func DefaultTemplate() *template.Template {
 }
 
 // ExecTemplate execs the reminder message for the given merge requests.
-func ExecTemplate(template *template.Template, project gitlab.Project, reminders []reminder) string {
+func ExecTemplate(template *template.Template, project gitlab.Project, reminders []reminder) (string, error) {
 	data := struct {
 		Project   gitlab.Project
 		Reminders []reminder
@@ -38,8 +38,8 @@ func ExecTemplate(template *template.Template, project gitlab.Project, reminders
 	buffer := bytes.NewBuffer([]byte{})
 
 	if err := template.Execute(buffer, data); err != nil {
-		log.Fatalf("failed executing template: %v", err)
+		return "", fmt.Errorf("failed executing template: %w", err)
 	}
 
-	return buffer.String()
+	return buffer.String(), nil
 }

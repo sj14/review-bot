@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 	"text/template"
 
@@ -50,20 +50,32 @@ func main() {
 		if len(ownerRespo) != 2 {
 			log.Fatalln("wrong repo format (use 'owner/repo')")
 		}
-		repo, reminders := github.AggregateReminder(*token, ownerRespo[0], ownerRespo[1], reviewers)
+		repository, reminders, err := github.AggregateReminder(*token, ownerRespo[0], ownerRespo[1], reviewers)
+		if err != nil {
+			log.Fatalf("failed aggregating github reminders: %v", err)
+		}
 		if len(reminders) == 0 {
 			// prevent from sending the header only
 			return
 		}
-		reminder = github.ExecTemplate(tmpl, repo, reminders)
+		reminder, err = github.ExecTemplate(tmpl, repository, reminders)
+		if err != nil {
+			log.Fatalf("failed executing template: %v", err)
+		}
 
 	} else {
-		project, reminders := gitlab.AggregateReminder(*host, *token, *repo, reviewers)
+		project, reminders, err := gitlab.AggregateReminder(*host, *token, *repo, reviewers)
+		if err != nil {
+			log.Fatalf("failed aggregating gitlab reminders: %v", err)
+		}
 		if len(reminders) == 0 {
 			// prevent from sending the header only
 			return
 		}
-		reminder = gitlab.ExecTemplate(tmpl, project, reminders)
+		reminder, err = gitlab.ExecTemplate(tmpl, project, reminders)
+		if err != nil {
+			log.Fatalf("failed executing template: %v", err)
+		}
 	}
 
 	if reminder == "" {
@@ -95,7 +107,7 @@ func loadTemplate(path string) *template.Template {
 // 'Github LoginName': 'Mattermost Username'
 // e.g. {"sj14":"@simon","john":"@john"}
 func loadReviewers(path string) map[string]string {
-	b, err := ioutil.ReadFile(path)
+	b, err := os.ReadFile(path)
 	if err != nil {
 		log.Fatalf("failed to read reviewers file: %v", err)
 	}
