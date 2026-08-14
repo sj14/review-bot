@@ -1,11 +1,11 @@
 package gitlab
 
 import (
-	"github.com/xanzy/go-gitlab"
+	"gitlab.com/gitlab-org/api/client-go/v2"
 )
 
 type reminder struct {
-	MR          *gitlab.MergeRequest
+	MR          *gitlab.BasicMergeRequest
 	Missing     []string
 	Discussions int
 	Owner       string
@@ -57,7 +57,7 @@ func aggregate(git clientWrapper, repo interface{}, reviewers map[string]string)
 
 	for _, mr := range mergeRequests {
 		// don't check WIP MRs
-		if mr.WorkInProgress {
+		if mr.Draft {
 			continue
 		}
 
@@ -90,7 +90,7 @@ func aggregate(git clientWrapper, repo interface{}, reviewers map[string]string)
 
 // responsiblePerson returns the mattermost name of the assignee or author of the MR
 // (fallback: gitlab author name)
-func responsiblePerson(mr *gitlab.MergeRequest, reviewers map[string]string) string {
+func responsiblePerson(mr *gitlab.BasicMergeRequest, reviewers map[string]string) string {
 	if mr == nil {
 		return ""
 	}
@@ -127,8 +127,8 @@ func openDiscussionsCount(discussions []*gitlab.Discussion) int {
 }
 
 // filterOpenDiscussions returns only merge requests which have no open discussions.
-func filterOpenDiscussions(mergeRequests []*gitlab.MergeRequest, discussions []*gitlab.Discussion) []*gitlab.MergeRequest {
-	result := []*gitlab.MergeRequest{}
+func filterOpenDiscussions(mergeRequests []*gitlab.BasicMergeRequest, discussions []*gitlab.Discussion) []*gitlab.BasicMergeRequest {
+	result := []*gitlab.BasicMergeRequest{}
 
 	for _, mr := range mergeRequests {
 		// check if any of the discussions are unresolved
@@ -160,7 +160,7 @@ const (
 // getReviewed returns the gitlab user id of the people who have already reviewed the MR.
 // The emojis "thumbsup" 👍 and "thumbsdown" 👎 signal the user reviewed the merge request and won't receive a reminder.
 // The emoji "sleeping" 😴 means the user won't review the code and/or doesn't want to be reminded.
-func getReviewed(mr *gitlab.MergeRequest, emojis []*gitlab.AwardEmoji) []string {
+func getReviewed(mr *gitlab.BasicMergeRequest, emojis []*gitlab.AwardEmoji) []string {
 	var reviewedBy []string
 
 	if mr != nil && mr.Author != nil {

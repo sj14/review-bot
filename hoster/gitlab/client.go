@@ -5,15 +5,15 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/xanzy/go-gitlab"
+	"gitlab.com/gitlab-org/api/client-go/v2"
 )
 
 //go:generate moq -out client_moq_test.go . clientWrapper
 type clientWrapper interface {
 	loadProject(repo interface{}) gitlab.Project
-	loadMRs(repo interface{}) []*gitlab.MergeRequest
-	loadEmojis(repo interface{}, mr *gitlab.MergeRequest) []*gitlab.AwardEmoji
-	loadDiscussions(repo interface{}, mr *gitlab.MergeRequest) []*gitlab.Discussion
+	loadMRs(repo interface{}) []*gitlab.BasicMergeRequest
+	loadEmojis(repo interface{}, mr *gitlab.BasicMergeRequest) []*gitlab.AwardEmoji
+	loadDiscussions(repo interface{}, mr *gitlab.BasicMergeRequest) []*gitlab.Discussion
 }
 
 type client struct {
@@ -43,9 +43,9 @@ func (c *client) loadProject(repo interface{}) gitlab.Project {
 }
 
 // openMergeRequests returns all open merge requests of the given project.
-func (c *client) loadMRs(repo interface{}) []*gitlab.MergeRequest {
+func (c *client) loadMRs(repo interface{}) []*gitlab.BasicMergeRequest {
 	var (
-		mergeRequests []*gitlab.MergeRequest
+		mergeRequests []*gitlab.BasicMergeRequest
 		state         = "opened"
 		opts          = &gitlab.ListProjectMergeRequestsOptions{
 			State:       &state,
@@ -72,10 +72,10 @@ func (c *client) loadMRs(repo interface{}) []*gitlab.MergeRequest {
 }
 
 // loadDiscussions of the given MR.
-func (c *client) loadDiscussions(repo interface{}, mr *gitlab.MergeRequest) []*gitlab.Discussion {
+func (c *client) loadDiscussions(repo interface{}, mr *gitlab.BasicMergeRequest) []*gitlab.Discussion {
 	var (
 		discussions []*gitlab.Discussion
-		opts        = &gitlab.ListMergeRequestDiscussionsOptions{PerPage: 25}
+		opts        = &gitlab.ListMergeRequestDiscussionsOptions{ListOptions: gitlab.ListOptions{PerPage: 25}}
 	)
 
 	for {
@@ -97,10 +97,10 @@ func (c *client) loadDiscussions(repo interface{}, mr *gitlab.MergeRequest) []*g
 }
 
 // loadEmojis returns all emoji reactions of the particular MR.
-func (c *client) loadEmojis(repo interface{}, mr *gitlab.MergeRequest) []*gitlab.AwardEmoji {
+func (c *client) loadEmojis(repo interface{}, mr *gitlab.BasicMergeRequest) []*gitlab.AwardEmoji {
 	var (
 		emojis []*gitlab.AwardEmoji
-		opts   = &gitlab.ListAwardEmojiOptions{PerPage: 25}
+		opts   = &gitlab.ListAwardEmojiOptions{ListOptions: gitlab.ListOptions{PerPage: 25}}
 	)
 
 	for {

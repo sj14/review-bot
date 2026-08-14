@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/xanzy/go-gitlab"
+	"gitlab.com/gitlab-org/api/client-go/v2"
 )
 
 func TestAggregateReminder(t *testing.T) {
@@ -12,18 +12,18 @@ func TestAggregateReminder(t *testing.T) {
 		loadProjectFunc: func(repo interface{}) gitlab.Project {
 			return gitlab.Project{Name: "mocked project"}
 		},
-		loadMRsFunc: func(repo interface{}) []*gitlab.MergeRequest {
-			return []*gitlab.MergeRequest{
+		loadMRsFunc: func(repo interface{}) []*gitlab.BasicMergeRequest {
+			return []*gitlab.BasicMergeRequest{
 				{Title: "MR0"},
-				{Title: "MR1", WorkInProgress: true},
+				{Title: "MR1", Draft: true},
 			}
 		},
-		loadEmojisFunc: func(repo interface{}, mr *gitlab.MergeRequest) []*gitlab.AwardEmoji {
+		loadEmojisFunc: func(repo interface{}, mr *gitlab.BasicMergeRequest) []*gitlab.AwardEmoji {
 			return []*gitlab.AwardEmoji{
 				{Name: thumbsup},
 			}
 		},
-		loadDiscussionsFunc: func(repo interface{}, mr *gitlab.MergeRequest) []*gitlab.Discussion {
+		loadDiscussionsFunc: func(repo interface{}, mr *gitlab.BasicMergeRequest) []*gitlab.Discussion {
 			return []*gitlab.Discussion{
 				{ID: "id0", Notes: []*gitlab.Note{{Resolved: false, Resolvable: true}}},
 			}
@@ -35,7 +35,7 @@ func TestAggregateReminder(t *testing.T) {
 	}
 
 	expR := []reminder{
-		{MR: &gitlab.MergeRequest{Title: "MR0"}, Missing: []string{"Spidy"}, Emojis: map[string]int{"thumbsup": 1}, Discussions: 1},
+		{MR: &gitlab.BasicMergeRequest{Title: "MR0"}, Missing: []string{"Spidy"}, Emojis: map[string]int{"thumbsup": 1}, Discussions: 1},
 	}
 
 	gotP, gotR := aggregate(mockedClient, 2009901, map[string]string{"42": "Spidy"})
@@ -46,21 +46,21 @@ func TestAggregateReminder(t *testing.T) {
 
 func TestResponsiblePerson(t *testing.T) {
 	t.Run("author", func(t *testing.T) {
-		mr := &gitlab.MergeRequest{Author: &gitlab.BasicUser{Name: "name-of-author"}}
+		mr := &gitlab.BasicMergeRequest{Author: &gitlab.BasicUser{Name: "name-of-author"}}
 		reviewers := map[string]string{}
 		got := responsiblePerson(mr, reviewers)
 		require.Equal(t, "name-of-author", got)
 	})
 
 	t.Run("@author", func(t *testing.T) {
-		mr := &gitlab.MergeRequest{Author: &gitlab.BasicUser{Username: "gitlab_name"}}
+		mr := &gitlab.BasicMergeRequest{Author: &gitlab.BasicUser{Username: "gitlab_name"}}
 		reviewers := map[string]string{"gitlab_name": "@author-of-mr"}
 		got := responsiblePerson(mr, reviewers)
 		require.Equal(t, "@author-of-mr", got)
 	})
 
 	t.Run("assignee", func(t *testing.T) {
-		mr := &gitlab.MergeRequest{Assignee: &gitlab.BasicUser{Username: "gitlab_name"}}
+		mr := &gitlab.BasicMergeRequest{Assignee: &gitlab.BasicUser{Username: "gitlab_name"}}
 		reviewers := map[string]string{"gitlab_name": "assignee-of-mr"}
 		got := responsiblePerson(mr, reviewers)
 		require.Equal(t, "assignee-of-mr", got)
@@ -68,24 +68,15 @@ func TestResponsiblePerson(t *testing.T) {
 }
 
 func TestGetReviewed(t *testing.T) {
-	mr := &gitlab.MergeRequest{Author: &gitlab.BasicUser{Username: "mr_author"}}
-
-	type user struct {
-		Name      string `json:"name"`
-		Username  string `json:"username"`
-		ID        int    `json:"id"`
-		State     string `json:"state"`
-		AvatarURL string `json:"avatar_url"`
-		WebURL    string `json:"web_url"`
-	}
+	mr := &gitlab.BasicMergeRequest{Author: &gitlab.BasicUser{Username: "mr_author"}}
 
 	emojis := []*gitlab.AwardEmoji{
-		{Name: thumbsup, User: user{Username: "user0"}},
-		{Name: thumbsdown, User: user{Username: "user1"}},
-		{Name: sleeping, User: user{Username: "user2"}},
-		{Name: "hooray", User: user{Username: "user3"}},
-		{Name: thumbsup, User: user{Username: "user3"}},
-		{Name: "anyemoji", User: user{Username: "user4"}},
+		{Name: thumbsup, User: gitlab.BasicUser{Username: "user0"}},
+		{Name: thumbsdown, User: gitlab.BasicUser{Username: "user1"}},
+		{Name: sleeping, User: gitlab.BasicUser{Username: "user2"}},
+		{Name: "hooray", User: gitlab.BasicUser{Username: "user3"}},
+		{Name: thumbsup, User: gitlab.BasicUser{Username: "user3"}},
+		{Name: "anyemoji", User: gitlab.BasicUser{Username: "user4"}},
 	}
 
 	got := getReviewed(mr, emojis)

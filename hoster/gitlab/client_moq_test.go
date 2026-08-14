@@ -4,7 +4,7 @@
 package gitlab
 
 import (
-	"github.com/xanzy/go-gitlab"
+	"gitlab.com/gitlab-org/api/client-go/v2"
 	"sync"
 )
 
@@ -25,13 +25,13 @@ var _ clientWrapper = &clientWrapperMock{}
 //
 //         // make and configure a mocked clientWrapper
 //         mockedclientWrapper := &clientWrapperMock{
-//             loadDiscussionsFunc: func(repo interface{}, mr *gitlab.MergeRequest) []*gitlab.Discussion {
+//             loadDiscussionsFunc: func(repo interface{}, mr *gitlab.BasicMergeRequest) []*gitlab.Discussion {
 // 	               panic("mock out the loadDiscussions method")
 //             },
-//             loadEmojisFunc: func(repo interface{}, mr *gitlab.MergeRequest) []*gitlab.AwardEmoji {
+//             loadEmojisFunc: func(repo interface{}, mr *gitlab.BasicMergeRequest) []*gitlab.AwardEmoji {
 // 	               panic("mock out the loadEmojis method")
 //             },
-//             loadMRsFunc: func(repo interface{}) []*gitlab.MergeRequest {
+//             loadMRsFunc: func(repo interface{}) []*gitlab.BasicMergeRequest {
 // 	               panic("mock out the loadMRs method")
 //             },
 //             loadProjectFunc: func(repo interface{}) gitlab.Project {
@@ -45,13 +45,13 @@ var _ clientWrapper = &clientWrapperMock{}
 //     }
 type clientWrapperMock struct {
 	// loadDiscussionsFunc mocks the loadDiscussions method.
-	loadDiscussionsFunc func(repo interface{}, mr *gitlab.MergeRequest) []*gitlab.Discussion
+	loadDiscussionsFunc func(repo interface{}, mr *gitlab.BasicMergeRequest) []*gitlab.Discussion
 
 	// loadEmojisFunc mocks the loadEmojis method.
-	loadEmojisFunc func(repo interface{}, mr *gitlab.MergeRequest) []*gitlab.AwardEmoji
+	loadEmojisFunc func(repo interface{}, mr *gitlab.BasicMergeRequest) []*gitlab.AwardEmoji
 
 	// loadMRsFunc mocks the loadMRs method.
-	loadMRsFunc func(repo interface{}) []*gitlab.MergeRequest
+	loadMRsFunc func(repo interface{}) []*gitlab.BasicMergeRequest
 
 	// loadProjectFunc mocks the loadProject method.
 	loadProjectFunc func(repo interface{}) gitlab.Project
@@ -63,14 +63,14 @@ type clientWrapperMock struct {
 			// Repo is the repo argument value.
 			Repo interface{}
 			// Mr is the mr argument value.
-			Mr *gitlab.MergeRequest
+			Mr *gitlab.BasicMergeRequest
 		}
 		// loadEmojis holds details about calls to the loadEmojis method.
 		loadEmojis []struct {
 			// Repo is the repo argument value.
 			Repo interface{}
 			// Mr is the mr argument value.
-			Mr *gitlab.MergeRequest
+			Mr *gitlab.BasicMergeRequest
 		}
 		// loadMRs holds details about calls to the loadMRs method.
 		loadMRs []struct {
@@ -86,13 +86,13 @@ type clientWrapperMock struct {
 }
 
 // loadDiscussions calls loadDiscussionsFunc.
-func (mock *clientWrapperMock) loadDiscussions(repo interface{}, mr *gitlab.MergeRequest) []*gitlab.Discussion {
+func (mock *clientWrapperMock) loadDiscussions(repo interface{}, mr *gitlab.BasicMergeRequest) []*gitlab.Discussion {
 	if mock.loadDiscussionsFunc == nil {
 		panic("clientWrapperMock.loadDiscussionsFunc: method is nil but clientWrapper.loadDiscussions was just called")
 	}
 	callInfo := struct {
 		Repo interface{}
-		Mr   *gitlab.MergeRequest
+		Mr   *gitlab.BasicMergeRequest
 	}{
 		Repo: repo,
 		Mr:   mr,
@@ -108,11 +108,11 @@ func (mock *clientWrapperMock) loadDiscussions(repo interface{}, mr *gitlab.Merg
 //     len(mockedclientWrapper.loadDiscussionsCalls())
 func (mock *clientWrapperMock) loadDiscussionsCalls() []struct {
 	Repo interface{}
-	Mr   *gitlab.MergeRequest
+	Mr   *gitlab.BasicMergeRequest
 } {
 	var calls []struct {
 		Repo interface{}
-		Mr   *gitlab.MergeRequest
+		Mr   *gitlab.BasicMergeRequest
 	}
 	lockclientWrapperMockloadDiscussions.RLock()
 	calls = mock.calls.loadDiscussions
@@ -121,13 +121,13 @@ func (mock *clientWrapperMock) loadDiscussionsCalls() []struct {
 }
 
 // loadEmojis calls loadEmojisFunc.
-func (mock *clientWrapperMock) loadEmojis(repo interface{}, mr *gitlab.MergeRequest) []*gitlab.AwardEmoji {
+func (mock *clientWrapperMock) loadEmojis(repo interface{}, mr *gitlab.BasicMergeRequest) []*gitlab.AwardEmoji {
 	if mock.loadEmojisFunc == nil {
 		panic("clientWrapperMock.loadEmojisFunc: method is nil but clientWrapper.loadEmojis was just called")
 	}
 	callInfo := struct {
 		Repo interface{}
-		Mr   *gitlab.MergeRequest
+		Mr   *gitlab.BasicMergeRequest
 	}{
 		Repo: repo,
 		Mr:   mr,
@@ -143,11 +143,11 @@ func (mock *clientWrapperMock) loadEmojis(repo interface{}, mr *gitlab.MergeRequ
 //     len(mockedclientWrapper.loadEmojisCalls())
 func (mock *clientWrapperMock) loadEmojisCalls() []struct {
 	Repo interface{}
-	Mr   *gitlab.MergeRequest
+	Mr   *gitlab.BasicMergeRequest
 } {
 	var calls []struct {
 		Repo interface{}
-		Mr   *gitlab.MergeRequest
+		Mr   *gitlab.BasicMergeRequest
 	}
 	lockclientWrapperMockloadEmojis.RLock()
 	calls = mock.calls.loadEmojis
@@ -156,7 +156,7 @@ func (mock *clientWrapperMock) loadEmojisCalls() []struct {
 }
 
 // loadMRs calls loadMRsFunc.
-func (mock *clientWrapperMock) loadMRs(repo interface{}) []*gitlab.MergeRequest {
+func (mock *clientWrapperMock) loadMRs(repo interface{}) []*gitlab.BasicMergeRequest {
 	if mock.loadMRsFunc == nil {
 		panic("clientWrapperMock.loadMRsFunc: method is nil but clientWrapper.loadMRs was just called")
 	}

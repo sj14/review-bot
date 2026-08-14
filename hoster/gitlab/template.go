@@ -5,7 +5,7 @@ import (
 	"log"
 	"text/template"
 
-	"github.com/xanzy/go-gitlab"
+	"gitlab.com/gitlab-org/api/client-go/v2"
 )
 
 // DefaultTemplate contains a project header and reminder messages.
