@@ -5,8 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/google/go-github/v25/github"
-	"golang.org/x/oauth2"
+	"github.com/google/go-github/v90/github"
 )
 
 //go:generate moq -out client_moq_test.go . clientWrapper
@@ -25,13 +24,14 @@ type client struct {
 func newClient(token string) *client {
 	ctx := context.Background()
 
-	c := github.NewClient(nil)
+	var opts []github.ClientOptionsFunc
 	if token != "" {
-		ts := oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: token},
-		)
-		tc := oauth2.NewClient(ctx, ts)
-		c = github.NewClient(tc)
+		opts = append(opts, github.WithAuthToken(token))
+	}
+
+	c, err := github.NewClient(opts...)
+	if err != nil {
+		log.Fatalf("failed creating new github client: %v", err)
 	}
 
 	return &client{original: c, ctx: ctx}

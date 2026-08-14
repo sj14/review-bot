@@ -5,7 +5,7 @@ import (
 	"log"
 	"text/template"
 
-	"github.com/google/go-github/v25/github"
+	"github.com/google/go-github/v90/github"
 )
 
 // DefaultTemplate contains a project header and reminder messages.

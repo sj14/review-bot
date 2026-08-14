@@ -4,7 +4,7 @@
 package github
 
 import (
-	"github.com/google/go-github/v25/github"
+	"github.com/google/go-github/v90/github"
 	"sync"
 )
 
