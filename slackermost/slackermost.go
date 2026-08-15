@@ -34,7 +34,7 @@ func Send(channel, text, webhook string) error {
 	client := &http.Client{Timeout: httpTimeout}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to send request: %v\n", err)
+		return fmt.Errorf("failed to send request: %v", err)
 	}
 
 	defer func() {

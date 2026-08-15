@@ -1,8 +1,6 @@
 package gitlab
 
-import (
-	"gitlab.com/gitlab-org/api/client-go/v2"
-)
+import gitlab "gitlab.com/gitlab-org/api/client-go/v2"
 
 type reminder struct {
 	MR          *gitlab.BasicMergeRequest
@@ -118,31 +116,6 @@ func openDiscussionsCount(discussions []*gitlab.Discussion) int {
 		}
 	}
 	return count
-}
-
-// filterOpenDiscussions returns only merge requests which have no open discussions.
-func filterOpenDiscussions(mergeRequests []*gitlab.BasicMergeRequest, discussions []*gitlab.Discussion) []*gitlab.BasicMergeRequest {
-	result := []*gitlab.BasicMergeRequest{}
-
-	for _, mr := range mergeRequests {
-		// check if any of the discussions are unresolved
-		anyUnresolved := false
-	LoopDiscussions:
-		for _, d := range discussions {
-			for _, n := range d.Notes {
-				if !n.Resolved && n.Resolvable {
-					anyUnresolved = true
-					break LoopDiscussions
-				}
-			}
-		}
-
-		// don't add merge request with unresolved discussion
-		if !anyUnresolved {
-			result = append(result, mr)
-		}
-	}
-	return result
 }
 
 const (

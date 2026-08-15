@@ -71,30 +71,6 @@ func getReviewed(pr *github.PullRequest, reviews []*github.PullRequestReview) []
 	return reviewedBy
 }
 
-func prepareReactions(reactions *github.Reactions) map[string]int {
-	result := make(map[string]int)
-
-	if i := reactions.GetConfused(); i > 0 {
-		result[":confused:"] = i
-	}
-	if i := reactions.GetHeart(); i > 0 {
-		result[":heart:"] = i
-	}
-	if i := reactions.GetHooray(); i > 0 {
-		result[":hooray:"] = i
-	}
-	if i := reactions.GetLaugh(); i > 0 {
-		result[":laugh:"] = i
-	}
-	if i := reactions.GetMinusOne(); i > 0 {
-		result[":-1:"] = i
-	}
-	if i := reactions.GetPlusOne(); i > 0 {
-		result[":+1:"] = i
-	}
-	return result
-}
-
 func missingReviewers(requested []*github.User, reviewedBy []string, mapping map[string]string) []string {
 	var missing []string
 
