@@ -11,7 +11,7 @@ import (
 
 const httpTimeout = 30 * time.Second
 
-//go:generate moq -out client_moq_test.go . clientWrapper
+//go:generate go tool moq -out client_moq_test.go . clientWrapper
 type clientWrapper interface {
 	loadRepository(owner, repo string) (*github.Repository, error)
 	loadPRs(owner, repo string) ([]*github.PullRequest, error)

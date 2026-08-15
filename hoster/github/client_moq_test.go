@@ -8,37 +8,31 @@ import (
 	"sync"
 )
 
-var (
-	lockclientWrapperMockloadPRs        sync.RWMutex
-	lockclientWrapperMockloadRepository sync.RWMutex
-	lockclientWrapperMockloadReviews    sync.RWMutex
-)
-
 // Ensure, that clientWrapperMock does implement clientWrapper.
 // If this is not the case, regenerate this file with moq.
 var _ clientWrapper = &clientWrapperMock{}
 
 // clientWrapperMock is a mock implementation of clientWrapper.
 //
-//     func TestSomethingThatUsesclientWrapper(t *testing.T) {
+//	func TestSomethingThatUsesclientWrapper(t *testing.T) {
 //
-//         // make and configure a mocked clientWrapper
-//         mockedclientWrapper := &clientWrapperMock{
-//             loadPRsFunc: func(owner string, repo string) ([]*github.PullRequest, error) {
-// 	               panic("mock out the loadPRs method")
-//             },
-//             loadRepositoryFunc: func(owner string, repo string) (*github.Repository, error) {
-// 	               panic("mock out the loadRepository method")
-//             },
-//             loadReviewsFunc: func(owner string, repo string, number int) ([]*github.PullRequestReview, error) {
-// 	               panic("mock out the loadReviews method")
-//             },
-//         }
+//		// make and configure a mocked clientWrapper
+//		mockedclientWrapper := &clientWrapperMock{
+//			loadPRsFunc: func(owner string, repo string) ([]*github.PullRequest, error) {
+//				panic("mock out the loadPRs method")
+//			},
+//			loadRepositoryFunc: func(owner string, repo string) (*github.Repository, error) {
+//				panic("mock out the loadRepository method")
+//			},
+//			loadReviewsFunc: func(owner string, repo string, number int) ([]*github.PullRequestReview, error) {
+//				panic("mock out the loadReviews method")
+//			},
+//		}
 //
-//         // use mockedclientWrapper in code that requires clientWrapper
-//         // and then make assertions.
+//		// use mockedclientWrapper in code that requires clientWrapper
+//		// and then make assertions.
 //
-//     }
+//	}
 type clientWrapperMock struct {
 	// loadPRsFunc mocks the loadPRs method.
 	loadPRsFunc func(owner string, repo string) ([]*github.PullRequest, error)
@@ -75,6 +69,9 @@ type clientWrapperMock struct {
 			Number int
 		}
 	}
+	lockloadPRs        sync.RWMutex
+	lockloadRepository sync.RWMutex
+	lockloadReviews    sync.RWMutex
 }
 
 // loadPRs calls loadPRsFunc.
@@ -89,15 +86,16 @@ func (mock *clientWrapperMock) loadPRs(owner string, repo string) ([]*github.Pul
 		Owner: owner,
 		Repo:  repo,
 	}
-	lockclientWrapperMockloadPRs.Lock()
+	mock.lockloadPRs.Lock()
 	mock.calls.loadPRs = append(mock.calls.loadPRs, callInfo)
-	lockclientWrapperMockloadPRs.Unlock()
+	mock.lockloadPRs.Unlock()
 	return mock.loadPRsFunc(owner, repo)
 }
 
 // loadPRsCalls gets all the calls that were made to loadPRs.
 // Check the length with:
-//     len(mockedclientWrapper.loadPRsCalls())
+//
+//	len(mockedclientWrapper.loadPRsCalls())
 func (mock *clientWrapperMock) loadPRsCalls() []struct {
 	Owner string
 	Repo  string
@@ -106,9 +104,9 @@ func (mock *clientWrapperMock) loadPRsCalls() []struct {
 		Owner string
 		Repo  string
 	}
-	lockclientWrapperMockloadPRs.RLock()
+	mock.lockloadPRs.RLock()
 	calls = mock.calls.loadPRs
-	lockclientWrapperMockloadPRs.RUnlock()
+	mock.lockloadPRs.RUnlock()
 	return calls
 }
 
@@ -124,15 +122,16 @@ func (mock *clientWrapperMock) loadRepository(owner string, repo string) (*githu
 		Owner: owner,
 		Repo:  repo,
 	}
-	lockclientWrapperMockloadRepository.Lock()
+	mock.lockloadRepository.Lock()
 	mock.calls.loadRepository = append(mock.calls.loadRepository, callInfo)
-	lockclientWrapperMockloadRepository.Unlock()
+	mock.lockloadRepository.Unlock()
 	return mock.loadRepositoryFunc(owner, repo)
 }
 
 // loadRepositoryCalls gets all the calls that were made to loadRepository.
 // Check the length with:
-//     len(mockedclientWrapper.loadRepositoryCalls())
+//
+//	len(mockedclientWrapper.loadRepositoryCalls())
 func (mock *clientWrapperMock) loadRepositoryCalls() []struct {
 	Owner string
 	Repo  string
@@ -141,9 +140,9 @@ func (mock *clientWrapperMock) loadRepositoryCalls() []struct {
 		Owner string
 		Repo  string
 	}
-	lockclientWrapperMockloadRepository.RLock()
+	mock.lockloadRepository.RLock()
 	calls = mock.calls.loadRepository
-	lockclientWrapperMockloadRepository.RUnlock()
+	mock.lockloadRepository.RUnlock()
 	return calls
 }
 
@@ -161,15 +160,16 @@ func (mock *clientWrapperMock) loadReviews(owner string, repo string, number int
 		Repo:   repo,
 		Number: number,
 	}
-	lockclientWrapperMockloadReviews.Lock()
+	mock.lockloadReviews.Lock()
 	mock.calls.loadReviews = append(mock.calls.loadReviews, callInfo)
-	lockclientWrapperMockloadReviews.Unlock()
+	mock.lockloadReviews.Unlock()
 	return mock.loadReviewsFunc(owner, repo, number)
 }
 
 // loadReviewsCalls gets all the calls that were made to loadReviews.
 // Check the length with:
-//     len(mockedclientWrapper.loadReviewsCalls())
+//
+//	len(mockedclientWrapper.loadReviewsCalls())
 func (mock *clientWrapperMock) loadReviewsCalls() []struct {
 	Owner  string
 	Repo   string
@@ -180,8 +180,8 @@ func (mock *clientWrapperMock) loadReviewsCalls() []struct {
 		Repo   string
 		Number int
 	}
-	lockclientWrapperMockloadReviews.RLock()
+	mock.lockloadReviews.RLock()
 	calls = mock.calls.loadReviews
-	lockclientWrapperMockloadReviews.RUnlock()
+	mock.lockloadReviews.RUnlock()
 	return calls
 }

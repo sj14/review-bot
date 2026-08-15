@@ -5,12 +5,12 @@ import (
 	"net/http"
 	"time"
 
-	"gitlab.com/gitlab-org/api/client-go/v2"
+	gitlab "gitlab.com/gitlab-org/api/client-go/v2"
 )
 
 const httpTimeout = 30 * time.Second
 
-//go:generate moq -out client_moq_test.go . clientWrapper
+//go:generate go tool moq -out client_moq_test.go . clientWrapper
 type clientWrapper interface {
 	loadProject(repo interface{}) (gitlab.Project, error)
 	loadMRs(repo interface{}) ([]*gitlab.BasicMergeRequest, error)
