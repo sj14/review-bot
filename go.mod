@@ -7,7 +7,7 @@ tool github.com/matryer/moq
 require (
 	github.com/google/go-github/v90 v90.0.0
 	github.com/stretchr/testify v1.12.1
-	gitlab.com/gitlab-org/api/client-go/v2 v2.60.0
+	gitlab.com/gitlab-org/api/client-go/v2 v2.64.0
 )
 
 require (
